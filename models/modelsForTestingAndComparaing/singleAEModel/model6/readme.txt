@@ -1,0 +1,3 @@
+model6
+
+这个模型是以我写的model4模型为基础修改的，改动不大，只是增加了instance normalizatin层，临近输入输出部分的激励函数使用了leaky_relu，仅此而已。一样的训练参数，加了ins的model6的training loss与model4基本无异，只能勉强说稍稍领先一点。但是它的testing loss就远远不如model4了，不知道为啥，是因为instance normalization在testing的时候用错了？

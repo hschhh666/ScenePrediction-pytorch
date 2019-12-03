@@ -1,0 +1,37 @@
+# -*- coding: utf-8 -*- 
+'''
+It's so slow for python to read yml files, but there are thouthands of such files. So for first step, yml need to be converted to numpy data.
+'''
+
+import numpy as np
+from cv2 import cv2
+import time
+import os
+import re
+
+YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data3'
+
+ymlFiles = []
+for root,dirs,files in os.walk(YMLFilePath):
+    for f in files:
+        if re.match('.*yml',f):
+            ymlFile = os.path.join(root,f)
+            ymlFiles.append(ymlFile)
+
+datasize = len(ymlFiles)
+t1 = time.time()
+for i,ymlFile in enumerate(ymlFiles):
+    if i%500 == 0:
+        print('Reading %d/%d, time = %d sec'%(i,datasize, (time.time() - t1)))
+    fs = cv2.FileStorage(ymlFile,cv2.FileStorage_READ)
+    if not fs.isOpened():
+        print('Cannot open yml file, program exit')
+        exit(-2)
+    stateMap = fs.getNode('stateMap').mat()
+    originPedestrianMatrix = fs.getNode('originPedestrianMatrix').mat()
+    generatedPedestrianMatrix = fs.getNode('generatedPedestrianMatrix').mat()
+    simulationTime = fs.getNode('simulationTime').real()
+    tup = (simulationTime,originPedestrianMatrix,generatedPedestrianMatrix,stateMap)
+    tup = np.array(tup)
+    np.save(ymlFile[0:-4] + '.npy',tup)
+    fs.release()

@@ -1,0 +1,13 @@
+__pycache__/
+cifar10/
+networkParam/
+testPytorch.py
+*.jpg
+*.npy
+*.eps
+*.png
+*.pdf
+modelParam/
+resultDir/
+*.txt
+!readme.txt

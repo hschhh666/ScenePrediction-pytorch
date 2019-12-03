@@ -1,0 +1,3 @@
+model2
+
+这个模型相较于model1而言，只是把encoder的pooling层换成了stride=2的卷积层。实验证明，使用stride=2的卷积降维，可以保留更多信息，testing loss和training loss会更低。这个隐变量的维度也是9x64x64
