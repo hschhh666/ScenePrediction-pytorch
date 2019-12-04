@@ -163,40 +163,72 @@ class FakeSinglePairDataset(Dataset):
 
 
 def convertDataToBGR(data):
+    dim = len(np.shape(data))
     CV_PI = 3.1415926535897932384626433832795
-    toLeft = data[0]
-    toRight = data[1]
-    size = np.shape(toRight)[0]
-    hls = np.zeros([size,size,3])
-
-    for i in range(size):
-        for j in range(size):
-            L1 = toRight[i,j]
-            L2 = toLeft[i,j]
+    if dim == 3: 
+        L1 = data[1]
+        L2 = data[0]
+        size = np.shape(L1)[0]
+        hls = np.zeros([size,size,3])
+        theta1 = 0
+        theta2 = (85/255.0)*180.0
+        theta1 = theta1 * CV_PI / 180
+        theta2 = theta2 * CV_PI / 180
+        L3 = np.sqrt(L1 * L1 + L2 * L2 + 2 * L1 * L2 * math.cos(theta1 - theta2))
+        L3[L3<1e-3] = 0.001
+        tmp = (L1*math.cos(theta1) + L2 * math.cos(theta2)) / L3
+        tmp[abs(tmp) > 1] = 1
+        theta3 = np.arccos(tmp)
+        theta3 = theta3 * 180 / CV_PI
+        L3 = L1 + L2
+        L3[L3 > 128] = 128
+        hls[:,:,0] = theta3
+        hls[:,:,1] = 255-L3
+        hls[:,:,2] = 255
+        hls = hls.astype(np.uint8)
+        bgr = cv2.cvtColor(hls,cv2.COLOR_HLS2BGR)
+        return bgr
+    
+    if dim == 4:
+        data = data.numpy()
+        bgrs = []
+        for k in range(np.shape(data)[0]):
+            singleData = data[k]
+            toLeft = singleData[0]
+            toRight = singleData[1]
+            size = np.shape(toRight)[0]
+            hls = np.zeros([size,size,3])
+            L1 = toRight
+            L2 = toLeft
             theta1 = 0
             theta2 = (85/255.0)*180.0
             theta1 = theta1 * CV_PI / 180
             theta2 = theta2 * CV_PI / 180
-            L3 = math.sqrt(L1 * L1 + L2 * L2 + 2 * L1 * L2 * math.cos(theta1 - theta2))
-            if L3 < 1e-3:
-                hls[i,j,0] = 0
-                hls[i,j,1] = 255
-                hls[i,j,2] = 0
-                continue
-            test = (L1*math.cos(theta1) + L2 * math.cos(theta2)) / L3
-            test = 1 if abs(test)>1 else test
-            theta3 = math.acos(test)
+            L3 = np.sqrt(L1 * L1 + L2 * L2 + 2 * L1 * L2 * math.cos(theta1 - theta2))
+            L3[L3<1e-3] = 0.001
+            tmp = (L1*math.cos(theta1) + L2 * math.cos(theta2)) / L3
+            tmp[abs(tmp) > 1] = 1
+            theta3 = np.arccos(tmp)
             theta3 = theta3 * 180 / CV_PI
             L3 = L1 + L2
-            L3 = 128 if L3>128 else L3
-            hls[i,j,0] = theta3
-            hls[i,j,1] = 255-L3
-            hls[i,j,2] = 255
-    hls = hls.astype(np.uint8)
+            L3[L3 > 128] = 128
+            hls[:,:,0] = theta3
+            hls[:,:,1] = 255-L3
+            hls[:,:,2] = 255
+            hls = hls.astype(np.uint8)
+            bgr = cv2.cvtColor(hls,cv2.COLOR_HLS2BGR)
+            bgrs.append(bgr)
+        bgrs = np.array(bgrs)
+        bgrs = np.transpose(bgrs,(0,3,1,2))
+        bgrs = torch.Tensor(bgrs)
+        return bgrs
     
-    bgr = cv2.cvtColor(hls,cv2.COLOR_HLS2BGR)
+    else:
+        print('dim error! check data dim.(dim should be 3 or 4)')
+        exit(-1)
+
+
     
-    return bgr
 
 
 
@@ -245,22 +277,25 @@ class FakeDeltaTDataset(Dataset):
 
     def __getitem__(self,idx):
 
-        resultEastIdx = self.eastIndex[idx]
-        resultSouthEastIdx = -1
-
-        M = int((resultEastIdx-1)/self.TimeInterval) + 1
-        M = [M + self.deltaT, M - self.deltaT]
-        random.shuffle(M)
-        for m in M:
-            startIdx = (m-1)*self.TimeInterval + 1
-            southEastTmpIdx = self.southEastIndex[np.logical_and(startIdx <= self.southEastIndex,self.southEastIndex <= (startIdx + self.TimeInterval - 1) )]
-            if len(southEastTmpIdx) >0:
-                random.shuffle(southEastTmpIdx)
-                resultSouthEastIdx = southEastTmpIdx[0]
-                break
-
+        resultSouthEastIdx = resultEastIdx = 0
         if not self.train:
-            resultSouthEastIdx = resultEastIdx = (idx/5)*15 + idx%5 + 11
+            resultSouthEastIdx = resultEastIdx = int(idx/5)*15 + int(idx)%5 + 11
+
+        else:
+            resultEastIdx = self.eastIndex[idx]
+            resultSouthEastIdx = -1
+
+            M = int((resultEastIdx-1)/self.TimeInterval) + 1
+            M = [M + self.deltaT, M - self.deltaT]
+            random.shuffle(M)
+            for m in M:
+                startIdx = (m-1)*self.TimeInterval + 1
+                southEastTmpIdx = self.southEastIndex[np.logical_and(startIdx <= self.southEastIndex,self.southEastIndex <= (startIdx + self.TimeInterval - 1) )]
+                if len(southEastTmpIdx) >0:
+                    random.shuffle(southEastTmpIdx)
+                    resultSouthEastIdx = southEastTmpIdx[0]
+                    break
+
 
         E_npy = 'East_M%d_P0.npy'%(resultEastIdx)
         SE_npy = 'EastSouth_M%d_P0.npy'%(resultSouthEastIdx)
@@ -326,12 +361,19 @@ if __name__ == '__main__':
 
     
 
-    # filename = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4/East_M111_P0.npy'
-    # data = np.load(filename,allow_pickle=True)
+    filename = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4/East_M111_P0.npy'
+    data = np.load(filename,allow_pickle=True)
 
-    # data = data[4:6]
-    # bgr = convertDataToBGR(data)
-    # cv2.imwrite('/home/hsc/test.jpg',bgr)
+    toRight = data[5]
+    toRight = cv2.resize(toRight,(512,512))
+    toRight = toRight[np.newaxis,:]
+    toLeft = data[4]
+    toLeft = cv2.resize(toLeft,(512,512))
+    toLeft = toLeft[np.newaxis,:]
+    data = np.concatenate((toLeft,toRight))
+    data = np.array(data)
+    bgr = convertDataToBGR(data)
+    cv2.imwrite('/home/hsc/test1.jpg',bgr)
 
 
 

@@ -14,7 +14,7 @@ import torch.optim as optim
 import torchvision
 import time
 from datetime import datetime
-from StateMapDataset import  FakeDeltaTDataset
+from StateMapDataset import  FakeDeltaTDataset, convertDataToBGR
 import os,sys
 from logger import Logger
 from AutoEncoder import BehaviorModelAutoEncoder
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         EastModel = BehaviorModelAutoEncoder()
         SouthEastModel = BehaviorModelAutoEncoder()
         theta1 = torch.Tensor([1])
-        theta2 = torch.Tensor([0.1])
+        theta2 = torch.Tensor([1])
         theta3 = torch.Tensor([10])
 
         EastModel.to(device)
@@ -109,6 +109,8 @@ if __name__ == '__main__':
                 loss3 = criterion(Ez,Sz)
 
                 loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)
+
+                # loss = loss1 + loss2 + 0.1*loss3
 
                 loss.backward()
                 optimizer.step()
@@ -151,14 +153,15 @@ if __name__ == '__main__':
                     concatenate = torch.cat([E,SE,EOut,SOut,SinEout,EinSout],0)
                     concatenate = concatenate.detach()
                     concatenate = concatenate.cpu()
-                    concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=True,pad_value=255)
+                    concatenate = convertDataToBGR(concatenate)
+                    concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=False,pad_value=255)
 
-                    concatenate = 255 - concatenate.numpy()*255
+                    concatenate = concatenate.numpy()
                     concatenate = np.transpose(concatenate,(1,2,0))
                     imgName = 'Test_Epoch%d.jpg'%epoch
                     imgName = os.path.join(imgFolder,imgName)
                     cv2.imwrite(imgName,concatenate)
-                    pass
+                #     pass
 
             for i,sample in enumerate(fakeSingleTrainLoader):
                 E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
@@ -185,16 +188,16 @@ if __name__ == '__main__':
                     concatenate = torch.cat([E,SE,EOut,SOut,SinEout,EinSout],0)
                     concatenate = concatenate.detach()
                     concatenate = concatenate.cpu()
-                    concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=True,pad_value=255)
+                    concatenate = convertDataToBGR(concatenate)
+                    concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=False,pad_value=255)
 
-                    concatenate = 255 - concatenate.numpy()*255
+                    concatenate = concatenate.numpy()
                     concatenate = np.transpose(concatenate,(1,2,0))
                     imgName = 'Train_Epoch%d.jpg'%epoch
                     imgName = os.path.join(imgFolder,imgName)
                     cv2.imwrite(imgName,concatenate)
-                    pass
+                    break
 
-            # if  epoch > 100 and epoch%2 == 0 and testing_loss < lastTestingLoss:
             if testing_loss < lastTestingLoss:
                 lastTestingLoss = testing_loss
                 torch.save(EastModel.state_dict(),os.path.join(modelParamFolder,'Easemodel.pth'))
