@@ -207,9 +207,9 @@ class subDatasetIndex():
         pass
 
 
-
 class FakeDeltaTDataset(Dataset):
-    def __init__(self,E_path,SE_path,deltaT):
+    def __init__(self,E_path,SE_path,deltaT,train = True):
+        self.train = train
         self.E_path = E_path
         self.SE_path = SE_path
         eastIndex = [i*15 + j for i in range(54) for j in [1,5,10] ]
@@ -237,7 +237,10 @@ class FakeDeltaTDataset(Dataset):
         pass
 
     def __len__(self):
-        return len(self.eastIndex)
+        if self.train:
+            return len(self.eastIndex)
+        else:
+            return 5*54
 
 
     def __getitem__(self,idx):
@@ -245,8 +248,7 @@ class FakeDeltaTDataset(Dataset):
         resultEastIdx = self.eastIndex[idx]
         resultSouthEastIdx = -1
 
-        idx = resultEastIdx
-        M = int((idx-1)/self.TimeInterval) + 1
+        M = int((resultEastIdx-1)/self.TimeInterval) + 1
         M = [M + self.deltaT, M - self.deltaT]
         random.shuffle(M)
         for m in M:
@@ -257,7 +259,9 @@ class FakeDeltaTDataset(Dataset):
                 resultSouthEastIdx = southEastTmpIdx[0]
                 break
 
-            
+        if not self.train:
+            resultSouthEastIdx = resultEastIdx = (idx/5)*15 + idx%5 + 11
+
         E_npy = 'East_M%d_P0.npy'%(resultEastIdx)
         SE_npy = 'EastSouth_M%d_P0.npy'%(resultSouthEastIdx)
         SE_npy = os.path.join(self.SE_path,SE_npy)
