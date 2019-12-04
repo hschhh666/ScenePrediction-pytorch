@@ -14,7 +14,7 @@ import torch.optim as optim
 import torchvision
 import time
 from datetime import datetime
-from StateMapDataset import  FakeDataSet ,FakeAvgDataset, FakeSinglePairDataset
+from StateMapDataset import  FakeDeltaTDataset
 import os,sys
 from logger import Logger
 from AutoEncoder import BehaviorModelAutoEncoder
@@ -58,8 +58,8 @@ if __name__ == '__main__':
     os.makedirs(modelParamFolder)
 
     # 加载数据集
-    fakeSingleTrainset = FakeSinglePairDataset(E_dataset_path,SE_dataset_path,train = True)
-    fakeSingleTestset = FakeSinglePairDataset(E_dataset_path,SE_dataset_path,train = False)
+    fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = True)
+    fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
     fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
     fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=4,shuffle=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

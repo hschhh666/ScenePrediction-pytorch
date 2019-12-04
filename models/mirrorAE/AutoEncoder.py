@@ -24,7 +24,7 @@ from logger import Logger
 class BehaviorModelAutoEncoder(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1,3,3,padding=1,stride=2)
+        self.conv1 = nn.Conv2d(2,3,3,padding=1,stride=2)
         self.conv2 = nn.Conv2d(3,5,3,padding=1,stride=2)
         self.conv3 = nn.Conv2d(5,5,3,padding=1,stride=2)
 
@@ -40,7 +40,7 @@ class BehaviorModelAutoEncoder(nn.Module):
 
         self.dconv1 = nn.Conv2d(5,5,3,padding=1)
         self.dconv2 = nn.Conv2d(5,3,3,padding=1)
-        self.dconv3 = nn.Conv2d(3,1,3,padding=1)
+        self.dconv3 = nn.Conv2d(3,2,3,padding=1)
 
 
         # self.transConv1 = nn.ConvTranspose2d(5,5,4,padding = 1,stride = 2)
