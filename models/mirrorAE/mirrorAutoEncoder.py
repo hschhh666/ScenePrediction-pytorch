@@ -26,8 +26,8 @@ if __name__ == '__main__':
     TestOrTrain = 'train'
     saveThisExper = False
 
-    E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data3'
-    SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data3'
+    E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4'
+    SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4'
 
     # 当前路径下的resultDir用来保存每次的试验结果，包括log、结果图、训练参数。每次实验都在resultDir下创建一个以实验开始时间为名字的文件夹，该文件夹下保存当次实验的所有结果。
     # 如果resultDir不存在，则创建

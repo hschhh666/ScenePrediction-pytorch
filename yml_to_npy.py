@@ -9,7 +9,8 @@ import time
 import os
 import re
 
-YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data3'
+YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4'
+YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4'
 
 ymlFiles = []
 for root,dirs,files in os.walk(YMLFilePath):
@@ -28,10 +29,12 @@ for i,ymlFile in enumerate(ymlFiles):
         print('Cannot open yml file, program exit')
         exit(-2)
     stateMap = fs.getNode('stateMap').mat()
+    toRight = fs.getNode('toRight').mat()
+    toLeft = fs.getNode('toLeft').mat()
     originPedestrianMatrix = fs.getNode('originPedestrianMatrix').mat()
     generatedPedestrianMatrix = fs.getNode('generatedPedestrianMatrix').mat()
     simulationTime = fs.getNode('simulationTime').real()
-    tup = (simulationTime,originPedestrianMatrix,generatedPedestrianMatrix,stateMap)
+    tup = (simulationTime,originPedestrianMatrix,generatedPedestrianMatrix,stateMap,toLeft,toRight)
     tup = np.array(tup)
     np.save(ymlFile[0:-4] + '.npy',tup)
     fs.release()
