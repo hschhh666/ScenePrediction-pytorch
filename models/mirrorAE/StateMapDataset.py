@@ -238,6 +238,48 @@ class subDatasetIndex():
         southEastIndex = [i*15 + j for i in range(54) for j in [1,5,10] ]
         pass
 
+class typicalTestData(Dataset):
+    def __init__(self,E_path,SE_path):
+        self.E_path = E_path
+        self.SE_path = SE_path
+        self.deltaT = 0
+        self.idx = [60,180,300,600] # all in ; no one ; all out ; mid
+        # M = [4,12,20,40]
+    
+    def __len__(self):
+        return 4
+
+    def __getitem__(self,idx):
+        E_npy = 'East_M%d_P0.npy'%(self.idx[idx])
+        SE_npy = 'EastSouth_M%d_P0.npy'%(self.idx[idx])
+        SE_npy = os.path.join(self.SE_path,SE_npy)
+        E_npy = os.path.join(self.E_path,E_npy)
+        
+        SEData = np.load(SE_npy,allow_pickle=True)
+        EData = np.load(E_npy,allow_pickle=True)
+
+        toRight = SEData[5]
+        toRight = cv2.resize(toRight,(512,512))
+        toRight = toRight[np.newaxis,:]
+        toLeft = SEData[4]
+        toLeft = cv2.resize(toLeft,(512,512))
+        toLeft = toLeft[np.newaxis,:]
+        SEStateMap = np.concatenate((toLeft,toRight))
+
+        toRight = EData[5]
+        toRight = cv2.resize(toRight,(512,512))
+        toRight = toRight[np.newaxis,:]
+        toLeft = EData[4]
+        toLeft = cv2.resize(toLeft,(512,512))
+        toLeft = toLeft[np.newaxis,:]
+        EStateMap = np.concatenate((toLeft,toRight))
+
+        # bgr = convertDataToBGR(EStateMap)
+        # cv2.imwrite('/home/hsc/test.jpg',bgr)
+
+        sample = {'EStateMap':EStateMap,'SEStateMap':SEStateMap,'deltaT':self.deltaT}
+        return sample
+
 
 class FakeDeltaTDataset(Dataset):
     def __init__(self,E_path,SE_path,deltaT,train = True):
