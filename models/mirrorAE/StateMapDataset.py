@@ -245,6 +245,7 @@ class typicalTestData(Dataset):
         self.deltaT = 0
         self.idx = [60,180,300,600] # all in ; no one ; all out ; mid
         # M = [4,12,20,40]
+        # self.idx = [25,55,85,115]
     
     def __len__(self):
         return 4
@@ -286,13 +287,15 @@ class FakeDeltaTDataset(Dataset):
         self.train = train
         self.E_path = E_path
         self.SE_path = SE_path
-        eastIndex = [i*15 + j for i in range(54) for j in [1,5,10] ]
-        southEastIndex = [i*15 + j for i in range(54) for j in [1,5,10] ]
+        eastIndex = [i*30 + j for i in range(27) for j in [1,10,20] ]
+        southEastIndex = [i*60 + 30 + j for i in range(13) for j in [1,10,20] ]
+        # eastIndex = [i*30 + j for i in range(27) for j in [23,24,25,26,27] ]
+        # southEastIndex = [i*30 + j for i in range(27) for j in [23,24,25,26,27] ]
         eastIndex = np.array(eastIndex)
         southEastIndex = np.array(southEastIndex)
 
         self.deltaT = deltaT
-        self.TimeInterval = 15
+        self.TimeInterval = 30
         self.eastIndex = []
         self.southEastIndex = southEastIndex
 
@@ -314,14 +317,14 @@ class FakeDeltaTDataset(Dataset):
         if self.train:
             return len(self.eastIndex)
         else:
-            return 5*54
+            return 5*26
 
 
     def __getitem__(self,idx):
 
         resultSouthEastIdx = resultEastIdx = 0
         if not self.train:
-            resultSouthEastIdx = resultEastIdx = int(idx/5)*15 + int(idx)%5 + 11
+            resultSouthEastIdx = resultEastIdx = int(idx/5)*30 + int(idx)%5 + 25
 
         else:
             resultEastIdx = self.eastIndex[idx]
@@ -337,7 +340,7 @@ class FakeDeltaTDataset(Dataset):
                     random.shuffle(southEastTmpIdx)
                     resultSouthEastIdx = southEastTmpIdx[0]
                     break
-
+        
 
         E_npy = 'East_M%d_P0.npy'%(resultEastIdx)
         SE_npy = 'EastSouth_M%d_P0.npy'%(resultSouthEastIdx)
@@ -419,8 +422,9 @@ if __name__ == '__main__':
 
 
 
-    test = FakeDeltaTDataset('/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4','/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4',0)
+    test = FakeDeltaTDataset('/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4','/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4',1,False)
 
-    test[56]
+    for i in range(5*26):
+        test[i]
 
     pass

@@ -61,9 +61,13 @@ if __name__ == '__main__':
         os.makedirs(modelParamFolder)
 
         # 加载数据集
-        fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = True)
-        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
+        fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,1,train = True)
         fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
+
+        fakeSingleTrainsets = [FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,train = True) for i in range(5)]
+        fakeSingleTrainLoaders = [DataLoader(fakeSingleTrainsets[i],batch_size=4,shuffle=True)  for i in range(5)]
+
+        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=4,shuffle=True)
         
         print('device = ',device)
@@ -85,7 +89,7 @@ if __name__ == '__main__':
         criterion = nn.MSELoss()
         # optimizer = optim.SGD(itertools.chain(EastModel.parameters(),SouthEastModel.parameters()),lr = 0.001,momentum=0.9)
         # optimizer = optim.Adam(itertools.chain(EastModel.parameters(),SouthEastModel.parameters()),lr = 0.001)
-        optimizer = optim.Adam([{'params':EastModel.parameters()},{'params':SouthEastModel.parameters()},{'params':theta1},{'params':theta2},{'params':theta3,'lr':0.01}],lr = 0.001)
+        optimizer = optim.Adam([{'params':EastModel.parameters()},{'params':SouthEastModel.parameters()},{'params':theta1,'lr':0.01},{'params':theta2,'lr':0.01},{'params':theta3,'lr':0.01}],lr = 0.001)
         
         theta1.requires_grad = True
         theta2.requires_grad = True
@@ -103,37 +107,44 @@ if __name__ == '__main__':
             count = 0
 
             # 训练
-            for i,sample in enumerate(fakeSingleTrainLoader):
-                trainingPercent = int(100 * (i+1)/fakeSingleTrainLoader.__len__())
-                count += 1
-                E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
-                optimizer.zero_grad()
+            for i in range(5):
+                fakeSingleTrainLoader = fakeSingleTrainLoaders[i]
+                count = 0
+                for i,sample in enumerate(fakeSingleTrainLoader):
+                    trainingPercent = int(100 * (i+1)/fakeSingleTrainLoader.__len__())
+                    count += 1
+                    E,SE,deltaT = sample['EStateMap'].to(device), sample['SEStateMap'].to(device),sample['deltaT']
+                    deltaT = int(deltaT[0])
+                    optimizer.zero_grad()
 
-                EOut,Ez = EastModel(E)
-                SOut,Sz = SouthEastModel(SE)
+                    EOut,Ez = EastModel(E)
+                    SOut,Sz = SouthEastModel(SE)
 
-                loss1 = criterion(EOut,E)
-                loss2 = criterion(SOut,SE)
-                loss3 = criterion(Ez,Sz)
+                    loss1 = criterion(EOut,E)
+                    loss2 = criterion(SOut,SE)
+                    loss3 = criterion(Ez,Sz)
 
-                loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)
+                    # coefficent = (1.0/(deltaT + 1.0))
+                    coefficent = np.exp(-0.55*deltaT)
+                    coefficent = float(coefficent)
 
-                # loss = loss1 + loss2 + 0.1*loss3
+                    loss = loss1/theta1 +  loss2/theta2 + coefficent * loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)
 
-                loss.backward()
-                optimizer.step()
-                
-                running_loss += loss.item()
-                running_loss1 += loss1.item()
-                running_loss2 += loss2.item()
-                running_loss3 += loss3.item()
 
-                if count == 10:
-                    if fakeSingleTrainLoader.__len__() - (i+1) < count:
-                        trainingPercent = 100
-                    print('[%d, %5d%%] training loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.3f' %(epoch + 1, trainingPercent, running_loss / count,running_loss1/count,running_loss2/count,running_loss3/count))
-                    count = 0
-                    running_loss = running_loss1 = running_loss2 = running_loss3 = 0
+                    loss.backward()
+                    optimizer.step()
+                    
+                    running_loss += loss.item()
+                    running_loss1 += loss1.item()
+                    running_loss2 += loss2.item()
+                    running_loss3 += loss3.item()
+
+                    if count == 1:
+                        if fakeSingleTrainLoader.__len__() - (i+1) < count:
+                            trainingPercent = 100
+                        print('[%d, %5d%%]deltaT = %d, training loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1, trainingPercent, deltaT,running_loss / count,running_loss1/count,running_loss2/count,running_loss3/count))
+                        count = 0
+                        running_loss = running_loss1 = running_loss2 = running_loss3 = 0
                     
             testing_loss = testing_loss1 = testing_loss2 = testing_loss3 = 0
             count = 0
@@ -204,7 +215,7 @@ if __name__ == '__main__':
                 torch.save(SouthEastModel.state_dict(),os.path.join(modelParamFolder,'SEmodel.pth'))
 
             print()
-            print('[%d，%6s] testing  loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.3f' %(epoch + 1,'--', testing_loss / count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
+            print('[%d，%6s] testing  loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
             print('[%d, %6s] theta1 = %.3f, theta2 = %.3f, theta3 = %.3f'%(epoch+1, '--',theta1.item(),theta2.item(),theta3.item()))
 
             print()
@@ -221,7 +232,7 @@ if __name__ == '__main__':
 
     if TestOrTrain == 'test':
 
-        modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/20191204_22_48_34/modelParam'
+        modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/20191206_16_02_40/modelParam'
         typicalTestDataset = typicalTestData(E_dataset_path,SE_dataset_path)
         typicalTestDataLoader = DataLoader(typicalTestDataset,batch_size=4,shuffle=False)
 
@@ -234,41 +245,70 @@ if __name__ == '__main__':
         SouthEastModel.to(device)
         criterion = nn.MSELoss()
 
-        for i,sample in enumerate(typicalTestDataLoader):
-            E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
+        
+        zzlossedAVG = 0
+        for fuck in range(20):
+            zzlossed = []
+            coefficent = []
+            for testDeltaT in range(9):
 
-            Ez = EastModel.encoder(E)
-            EinSout = SouthEastModel.decoder(Ez)
-            EinEout = EastModel.decoder(Ez)
+                fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,testDeltaT,train = True)
+                typicalTestDataLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=False)
+                count = 0
+                totalzzloss = 0
+                print('processing deltaT = %d'%(testDeltaT))
 
-            Sz = SouthEastModel.encoder(SE)
-            SinEout = EastModel.decoder(Sz)
-            SinSout = SouthEastModel.decoder(Sz)
+                for i,sample in enumerate(typicalTestDataLoader):
+                    E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
 
-            concatenate = torch.cat([E,SE,EinEout,SinSout,SinEout,EinSout],0)
-            concatenate = torch.cat([E,SE,SinEout,EinSout],0)
-            concatenate = concatenate.detach()
-            concatenate = concatenate.cpu()
-            concatenate = convertDataToBGR(concatenate)
-            concatenate = torchvision.utils.make_grid(concatenate,nrow=8,normalize=False,pad_value=255)
+                    Ez = EastModel.encoder(E)
+                    EinSout = SouthEastModel.decoder(Ez)
+                    EinEout = EastModel.decoder(Ez)
 
-            concatenate = concatenate.numpy()
-            concatenate = np.transpose(concatenate,(1,2,0))
-            imgName = '/home/hsc/typicalTestResult.jpg'
-            cv2.imwrite(imgName,concatenate)
-            print('write img to ', imgName)
+                    Sz = SouthEastModel.encoder(SE)
+                    SinEout = EastModel.decoder(Sz)
+                    SinSout = SouthEastModel.decoder(Sz)
 
-            loss = criterion(Ez,Sz)
+                    # concatenate = torch.cat([E,SE,EinEout,SinSout,SinEout,EinSout],0)
+                    # concatenate = torch.cat([E,SE,SinEout,EinSout],0)
+                    # concatenate = concatenate.detach()
+                    # concatenate = concatenate.cpu()
+                    # concatenate = convertDataToBGR(concatenate)
+                    # concatenate = torchvision.utils.make_grid(concatenate,nrow=8,normalize=False,pad_value=255)
 
-            Ez = Ez.detach()
-            Ez = Ez.cpu()
-            Ez = Ez.numpy()
-            Sz = Sz.detach()
-            Sz = Sz.cpu()
-            Sz = Sz.numpy()
-            print('z-z mse = ',loss.item())
+                    # concatenate = concatenate.numpy()
+                    # concatenate = np.transpose(concatenate,(1,2,0))
+                    # imgName = '/home/hsc/typicalTestResult.jpg'
+                    # cv2.imwrite(imgName,concatenate)
+                    # print('write img to ', imgName)
 
+                    loss = criterion(Ez,Sz)
+
+
+                    Ez = Ez.detach()
+                    Ez = Ez.cpu()
+                    Ez = Ez.numpy()
+                    Sz = Sz.detach()
+                    Sz = Sz.cpu()
+                    Sz = Sz.numpy()
+
+                    totalzzloss += loss.item()
+                    count += 1
+                    # print('z-z mse = ',loss.item())
+
+                # print('testDeltaT = %d,z-z mse = %f '%(testDeltaT,totalzzloss/count))
+                zzlossed.append(totalzzloss/count)
+                coefficent.append(np.exp(testDeltaT*0.55))
             
+            zzlossed = np.array(zzlossed)
+            print(zzlossed)
+            print()
+            # zzlossed = zzlossed/zzlossed[0]
+            zzlossedAVG += zzlossed
+        zzlossedAVG/=20
+
+        print(zzlossedAVG/zzlossedAVG[0])
+        # print(coefficent)    
 
 
             
