@@ -23,7 +23,7 @@ import itertools
 
 if __name__ == '__main__':
 
-    TestOrTrain = 'test'
+    TestOrTrain = 'train'
     saveThisExper = False
 
     E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4'
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
 
         fakeSingleTrainsets = [FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,train = True) for i in range(5)]
-        fakeSingleTrainLoaders = [DataLoader(fakeSingleTrainsets[i],batch_size=4,shuffle=True)  for i in range(5)]
+        fakeSingleTrainLoaders = [DataLoader(fakeSingleTrainsets[i],batch_size=1,shuffle=True)  for i in range(5)]
 
         fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=4,shuffle=True)
@@ -99,15 +99,16 @@ if __name__ == '__main__':
         print('Start training.',time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) )
         start_time = time.time()
         lastTestingLoss = np.inf
+        lastPredictionLoss = np.inf
 
         # 2000个epoch
-        for epoch in range(2000):
+        for epoch in range(1000):
 
             running_loss = running_loss1 = running_loss2 = running_loss3 = 0
             count = 0
 
             # 训练
-            for i in range(5):
+            for i in range(1):
                 fakeSingleTrainLoader = fakeSingleTrainLoaders[i]
                 count = 0
                 for i,sample in enumerate(fakeSingleTrainLoader):
@@ -115,6 +116,7 @@ if __name__ == '__main__':
                     count += 1
                     E,SE,deltaT = sample['EStateMap'].to(device), sample['SEStateMap'].to(device),sample['deltaT']
                     deltaT = int(deltaT[0])
+                    
                     optimizer.zero_grad()
 
                     EOut,Ez = EastModel(E)
@@ -146,7 +148,7 @@ if __name__ == '__main__':
                         count = 0
                         running_loss = running_loss1 = running_loss2 = running_loss3 = 0
                     
-            testing_loss = testing_loss1 = testing_loss2 = testing_loss3 = 0
+            predictionLoss = testing_loss = testing_loss1 = testing_loss2 = testing_loss3 = 0
             count = 0
 
             # 计算当前epoch的testing loss，并可视化部分testing结果
@@ -157,20 +159,24 @@ if __name__ == '__main__':
                 EOut,Ez = EastModel(E)
                 SOut,Sz = SouthEastModel(SE)
 
+                EinSout = SouthEastModel.decoder(Ez)
+                SinEout = EastModel.decoder(Sz)
+
                 loss1 = criterion(EOut,E)
                 loss2 = criterion(SOut,SE)
                 loss3 = criterion(Ez,Sz)
 
                 loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)     
 
+                predictionLoss += ((criterion(EinSout,SE) + criterion(SinEout,E))/2).item()
+                
                 testing_loss  += loss.item()
                 testing_loss1 += loss1.item()
                 testing_loss2 += loss2.item()
                 testing_loss3 += loss3.item()
                 count += 1
 
-                EinSout = SouthEastModel.decoder(Ez)
-                SinEout = EastModel.decoder(Sz)
+                
 
                 if i == 0:
                     concatenate = torch.cat([E,SE,EOut,SOut,SinEout,EinSout],0)
@@ -208,14 +214,14 @@ if __name__ == '__main__':
                 cv2.imwrite(imgName,concatenate)
                 break
             
-            # 保存有史以来testing loss最小的网络参数
-            if testing_loss < lastTestingLoss:
-                lastTestingLoss = testing_loss
+            # 保存有史以来predictionLoss最小的网络参数
+            if predictionLoss < lastPredictionLoss:
+                lastPredictionLoss = predictionLoss
                 torch.save(EastModel.state_dict(),os.path.join(modelParamFolder,'Easemodel.pth'))
                 torch.save(SouthEastModel.state_dict(),os.path.join(modelParamFolder,'SEmodel.pth'))
 
             print()
-            print('[%d，%6s] testing  loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
+            print('[%d，%6s] testing  loss: %.3f,prediction loss = %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,predictionLoss/count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
             print('[%d, %6s] theta1 = %.3f, theta2 = %.3f, theta3 = %.3f'%(epoch+1, '--',theta1.item(),theta2.item(),theta3.item()))
 
             print()

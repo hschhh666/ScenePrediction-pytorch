@@ -310,12 +310,13 @@ class FakeDeltaTDataset(Dataset):
                     self.eastIndex.append(i)
                     break
         
+        self.eastIndex = eastIndex
         self.eastIndex = np.array(self.eastIndex)
         pass
 
     def __len__(self):
         if self.train:
-            return len(self.eastIndex)
+            return len(self.eastIndex)*len(self.southEastIndex)
         else:
             return 5*26
 
@@ -327,8 +328,9 @@ class FakeDeltaTDataset(Dataset):
             resultSouthEastIdx = resultEastIdx = int(idx/5)*30 + int(idx)%5 + 25
 
         else:
-            resultEastIdx = self.eastIndex[idx]
+            resultEastIdx = self.eastIndex[int(idx/len(self.southEastIndex))]
             resultSouthEastIdx = -1
+            # resultEastIdx = self.eastIndex[idx]
 
             M = int((resultEastIdx-1)/self.TimeInterval) + 1
             M = [M + self.deltaT, M - self.deltaT]
@@ -340,7 +342,10 @@ class FakeDeltaTDataset(Dataset):
                     random.shuffle(southEastTmpIdx)
                     resultSouthEastIdx = southEastTmpIdx[0]
                     break
-        
+            resultSouthEastIdx = self.southEastIndex[idx%len(self.southEastIndex)]
+
+        self.deltaT = (int(resultEastIdx/self.TimeInterval) + 1) - (int(resultSouthEastIdx/self.TimeInterval) + 1)
+        self.deltaT = abs(self.deltaT)
 
         E_npy = 'East_M%d_P0.npy'%(resultEastIdx)
         SE_npy = 'EastSouth_M%d_P0.npy'%(resultSouthEastIdx)
