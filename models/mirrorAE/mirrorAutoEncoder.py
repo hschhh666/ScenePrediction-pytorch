@@ -23,7 +23,7 @@ import itertools
 
 if __name__ == '__main__':
 
-    TestOrTrain = 'test'
+    TestOrTrain = 'train'
     saveThisExper = False
 
     E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4'
@@ -99,11 +99,12 @@ if __name__ == '__main__':
         print('Start training.',time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) )
         start_time = time.time()
         lastTestingLoss = np.inf
+        minPredictionLoss = np.inf
 
         # 2000个epoch
         for epoch in range(2000):
 
-            running_loss = running_loss1 = running_loss2 = running_loss3 = 0
+            predictionLoss = running_loss = running_loss1 = running_loss2 = running_loss3 = 0
             count = 0
 
             # 训练
@@ -156,10 +157,14 @@ if __name__ == '__main__':
 
                 EOut,Ez = EastModel(E)
                 SOut,Sz = SouthEastModel(SE)
+                EinSout = SouthEastModel.decoder(Ez)
+                SinEout = EastModel.decoder(Sz)
 
                 loss1 = criterion(EOut,E)
                 loss2 = criterion(SOut,SE)
                 loss3 = criterion(Ez,Sz)
+
+                predictionLoss += ((criterion(EinSout,SE) + criterion(SinEout,E))/2).item()
 
                 loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)     
 
@@ -169,8 +174,7 @@ if __name__ == '__main__':
                 testing_loss3 += loss3.item()
                 count += 1
 
-                EinSout = SouthEastModel.decoder(Ez)
-                SinEout = EastModel.decoder(Sz)
+                
 
                 if i == 0:
                     concatenate = torch.cat([E,SE,EOut,SOut,SinEout,EinSout],0)
@@ -208,14 +212,14 @@ if __name__ == '__main__':
                 cv2.imwrite(imgName,concatenate)
                 break
             
-            # 保存有史以来testing loss最小的网络参数
-            if testing_loss < lastTestingLoss:
-                lastTestingLoss = testing_loss
+            # 保存有史以来predictionLoss最小的网络参数
+            if predictionLoss < minPredictionLoss:
+                minPredictionLoss = predictionLoss
                 torch.save(EastModel.state_dict(),os.path.join(modelParamFolder,'Easemodel.pth'))
                 torch.save(SouthEastModel.state_dict(),os.path.join(modelParamFolder,'SEmodel.pth'))
 
             print()
-            print('[%d，%6s] testing  loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
+            print('[%d，%6s] testing  loss: %.3f, prediction loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,predictionLoss/count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
             print('[%d, %6s] theta1 = %.3f, theta2 = %.3f, theta3 = %.3f'%(epoch+1, '--',theta1.item(),theta2.item(),theta3.item()))
 
             print()
