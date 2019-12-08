@@ -102,7 +102,7 @@ if __name__ == '__main__':
         lastPredictionLoss = np.inf
 
         # 2000个epoch
-        for epoch in range(1000):
+        for epoch in range(2000):
 
             running_loss = running_loss1 = running_loss2 = running_loss3 = 0
             count = 0
@@ -113,9 +113,12 @@ if __name__ == '__main__':
                 count = 0
                 for i,sample in enumerate(fakeSingleTrainLoader):
                     trainingPercent = int(100 * (i+1)/fakeSingleTrainLoader.__len__())
-                    count += 1
+                    
                     E,SE,deltaT = sample['EStateMap'].to(device), sample['SEStateMap'].to(device),sample['deltaT']
                     deltaT = int(deltaT[0])
+                    if deltaT > 4:
+                        continue
+                    count += 1
                     
                     optimizer.zero_grad()
 
@@ -220,8 +223,13 @@ if __name__ == '__main__':
                 torch.save(EastModel.state_dict(),os.path.join(modelParamFolder,'Easemodel.pth'))
                 torch.save(SouthEastModel.state_dict(),os.path.join(modelParamFolder,'SEmodel.pth'))
 
+            if testing_loss < lastTestingLoss:
+                lastTestingLoss = testing_loss
+                torch.save(EastModel.state_dict(),os.path.join(modelParamFolder,'Easemodel_testloss.pth'))
+                torch.save(SouthEastModel.state_dict(),os.path.join(modelParamFolder,'SEmodel_testloss.pth'))
+
             print()
-            print('[%d，%6s] testing  loss: %.3f,prediction loss = %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,predictionLoss/count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
+            print('[%d，%6s] testing  loss: %.3f, prediction loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,predictionLoss/count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
             print('[%d, %6s] theta1 = %.3f, theta2 = %.3f, theta3 = %.3f'%(epoch+1, '--',theta1.item(),theta2.item(),theta3.item()))
 
             print()
