@@ -82,9 +82,9 @@ if __name__ == '__main__':
         # 模型迁移到GPU
         EastModel.to(device)
         SouthEastModel.to(device)
-        theta1 = theta1.cuda()
-        theta2 = theta2.cuda()
-        theta3 = theta3.cuda()
+        theta1 = theta1.cuda(device = device)
+        theta2 = theta2.cuda(device = device)
+        theta3 = theta3.cuda(device = device)
         
         criterion = nn.MSELoss()
         # optimizer = optim.SGD(itertools.chain(EastModel.parameters(),SouthEastModel.parameters()),lr = 0.001,momentum=0.9)
@@ -217,6 +217,11 @@ if __name__ == '__main__':
                 minPredictionLoss = predictionLoss
                 torch.save(EastModel.state_dict(),os.path.join(modelParamFolder,'Easemodel.pth'))
                 torch.save(SouthEastModel.state_dict(),os.path.join(modelParamFolder,'SEmodel.pth'))
+
+            if testing_loss < lastTestingLoss:
+                lastTestingLoss = testing_loss
+                torch.save(EastModel.state_dict(),os.path.join(modelParamFolder,'Easemodel_testloss.pth'))
+                torch.save(SouthEastModel.state_dict(),os.path.join(modelParamFolder,'SEmodel_testloss.pth'))
 
             print()
             print('[%d，%6s] testing  loss: %.3f, prediction loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,predictionLoss/count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
