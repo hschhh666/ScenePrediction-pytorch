@@ -287,7 +287,7 @@ class FakeDeltaTDataset(Dataset):
         self.train = train
         self.E_path = E_path
         self.SE_path = SE_path
-        eastIndex = [i*30 + j for i in range(27) for j in [1,10,20] ]
+        eastIndex = [i*60 + j for i in range(13) for j in [1,10,20] ]
         southEastIndex = [i*60 + 30 + j for i in range(13) for j in [1,10,20] ]
         # eastIndex = [i*30 + j for i in range(27) for j in [23,24,25,26,27] ]
         # southEastIndex = [i*30 + j for i in range(27) for j in [23,24,25,26,27] ]

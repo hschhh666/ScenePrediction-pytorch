@@ -64,8 +64,8 @@ if __name__ == '__main__':
         fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,1,train = True)
         fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
 
-        fakeSingleTrainsets = [FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,train = True) for i in range(5)]
-        fakeSingleTrainLoaders = [DataLoader(fakeSingleTrainsets[i],batch_size=4,shuffle=True)  for i in range(5)]
+        fakeSingleTrainsets = [FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,train = True) for i in range(1,4,2)]
+        fakeSingleTrainLoaders = [DataLoader(fakeSingleTrainsets[i],batch_size=4,shuffle=True)  for i in range(2)]
 
         fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=4,shuffle=True)
@@ -108,7 +108,7 @@ if __name__ == '__main__':
             count = 0
 
             # 训练
-            for i in range(5):
+            for i in range(2):
                 fakeSingleTrainLoader = fakeSingleTrainLoaders[i]
                 count = 0
                 for i,sample in enumerate(fakeSingleTrainLoader):
