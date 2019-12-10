@@ -29,7 +29,7 @@ if __name__ == '__main__':
     E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4'
     SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4'
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     if TestOrTrain =='train':
 
