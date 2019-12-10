@@ -82,9 +82,9 @@ if __name__ == '__main__':
         # 模型迁移到GPU
         EastModel.to(device)
         SouthEastModel.to(device)
-        theta1 = theta1.cuda()
-        theta2 = theta2.cuda()
-        theta3 = theta3.cuda()
+        theta1 = theta1.cuda(device = device)
+        theta2 = theta2.cuda(device = device)
+        theta3 = theta3.cuda(device = device)
         
         criterion = nn.MSELoss()
         # optimizer = optim.SGD(itertools.chain(EastModel.parameters(),SouthEastModel.parameters()),lr = 0.001,momentum=0.9)
