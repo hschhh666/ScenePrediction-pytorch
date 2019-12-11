@@ -29,7 +29,7 @@ if __name__ == '__main__':
     E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4'
     SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4'
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     if TestOrTrain =='train':
 
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
 
         fakeSingleTrainsets = [FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,train = True) for i in range(5)]
-        fakeSingleTrainLoaders = [DataLoader(fakeSingleTrainsets[i],batch_size=4,shuffle=True)  for i in range(5)]
+        # fakeSingleTrainLoaders = [DataLoader(fakeSingleTrainsets[i],batch_size=4,shuffle=True)  for i in range(5)]
 
         fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=4,shuffle=True)
@@ -109,7 +109,12 @@ if __name__ == '__main__':
 
             # 训练
             for i in range(5):
-                fakeSingleTrainLoader = fakeSingleTrainLoaders[i]
+                
+                if fakeSingleTrainsets[i].__len__()>0:
+                    fakeSingleTrainLoader = DataLoader(fakeSingleTrainsets[i],batch_size=4,shuffle=True)
+                else:
+                    continue
+
                 count = 0
                 for i,sample in enumerate(fakeSingleTrainLoader):
                     trainingPercent = int(100 * (i+1)/fakeSingleTrainLoader.__len__())
@@ -241,7 +246,7 @@ if __name__ == '__main__':
 
     if TestOrTrain == 'test':
 
-        modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/20191206_16_02_40/modelParam'
+        modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/tmp/20191210_23_20_53/modelParam'
         typicalTestDataset = typicalTestData(E_dataset_path,SE_dataset_path)
         typicalTestDataLoader = DataLoader(typicalTestDataset,batch_size=4,shuffle=False)
 
@@ -316,6 +321,7 @@ if __name__ == '__main__':
             zzlossedAVG += zzlossed
         zzlossedAVG/=20
 
+        print(zzlossedAVG)
         print(zzlossedAVG/zzlossedAVG[0])
         # print(coefficent)    
 

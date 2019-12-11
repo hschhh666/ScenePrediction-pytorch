@@ -234,8 +234,8 @@ def convertDataToBGR(data):
 
 class subDatasetIndex():
     def __init__(self):
-        eastIndex = [i*15 + j for i in range(54) for j in [1,5,10] ]
-        southEastIndex = [i*15 + j for i in range(54) for j in [1,5,10] ]
+        eastIndex = [i*15 + j for i in [0,1,3,6,7,10,13,16,18,19,21,24,26] for j in [1,5,10] ]
+        southEastIndex = [i*15 + j for i in [2,4,5,8,9,11,12,14,15,17,20,22,23,25] for j in [1,5,10] ]
         pass
 
 class typicalTestData(Dataset):
@@ -287,8 +287,8 @@ class FakeDeltaTDataset(Dataset):
         self.train = train
         self.E_path = E_path
         self.SE_path = SE_path
-        eastIndex = [i*30 + j for i in range(27) for j in [1,10,20] ]
-        southEastIndex = [i*60 + 30 + j for i in range(13) for j in [1,10,20] ]
+        eastIndex = [i*30 + j for i in [0,1,3,6,7,10,13,16,18,19,21,24,26] for j in [1,10,20] ]
+        southEastIndex = [i*30 + j for i in [2,4,5,8,9,11,12,14,15,17,20,22,23,25] for j in [1,10,20] ]
         # eastIndex = [i*30 + j for i in range(27) for j in [23,24,25,26,27] ]
         # southEastIndex = [i*30 + j for i in range(27) for j in [23,24,25,26,27] ]
         eastIndex = np.array(eastIndex)
