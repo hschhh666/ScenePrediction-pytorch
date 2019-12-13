@@ -1,6 +1,7 @@
 __pycache__/
 cifar10/
 networkParam/
+/models/EndToEndModel/
 testPytorch.py
 *.jpg
 *.npy
