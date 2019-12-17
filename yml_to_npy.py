@@ -21,6 +21,9 @@ for root,dirs,files in os.walk(YMLFilePath):
 
 datasize = len(ymlFiles)
 t1 = time.time()
+
+maxvalue = 0
+
 for i,ymlFile in enumerate(ymlFiles):
     if i%500 == 0:
         print('Reading %d/%d, time = %d sec'%(i,datasize, (time.time() - t1)))
@@ -28,12 +31,14 @@ for i,ymlFile in enumerate(ymlFiles):
     if not fs.isOpened():
         print('Cannot open yml file, program exit')
         exit(-2)
-    stateMap = fs.getNode('stateMap').mat()
-    toRight = fs.getNode('toRight').mat()
-    toLeft = fs.getNode('toLeft').mat()
+    
+    simulationTime = fs.getNode('simulationTime').real()/60 # minutes
+    stateMap = fs.getNode('stateMap').mat()/simulationTime
+    toRight = fs.getNode('toRight').mat()/simulationTime
+    toLeft = fs.getNode('toLeft').mat()/simulationTime
     originPedestrianMatrix = fs.getNode('originPedestrianMatrix').mat()
     generatedPedestrianMatrix = fs.getNode('generatedPedestrianMatrix').mat()
-    simulationTime = fs.getNode('simulationTime').real()
+    
     tup = (simulationTime,originPedestrianMatrix,generatedPedestrianMatrix,stateMap,toLeft,toRight)
     tup = np.array(tup)
     np.save(ymlFile[0:-4] + '.npy',tup)
