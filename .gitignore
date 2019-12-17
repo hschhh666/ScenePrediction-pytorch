@@ -2,6 +2,7 @@ __pycache__/
 cifar10/
 networkParam/
 /models/EndToEndModel/
+/models/LinearInterpolationModel/
 testPytorch.py
 *.jpg
 *.npy
@@ -12,3 +13,4 @@ modelParam/
 resultDir/
 *.txt
 !readme.txt
+.gitignore
