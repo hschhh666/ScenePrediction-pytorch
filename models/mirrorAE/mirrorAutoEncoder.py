@@ -26,8 +26,8 @@ if __name__ == '__main__':
     TestOrTrain = 'train'
     saveThisExper = False
 
-    E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4'
-    SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4'
+    E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data5'
+    SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data5'
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -85,6 +85,8 @@ if __name__ == '__main__':
         theta1 = theta1.cuda(device = device)
         theta2 = theta2.cuda(device = device)
         theta3 = theta3.cuda(device = device)
+
+        
         
         criterion = nn.MSELoss()
         # optimizer = optim.SGD(itertools.chain(EastModel.parameters(),SouthEastModel.parameters()),lr = 0.001,momentum=0.9)
@@ -129,7 +131,9 @@ if __name__ == '__main__':
                     coefficent = np.exp(-0.55*deltaT)
                     coefficent = float(coefficent)
 
-                    loss = loss1/theta1 +  loss2/theta2 + coefficent * loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)
+                    # loss = loss1/theta1 +  loss2/theta2 + coefficent * loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)
+
+                    loss = loss1 + loss2 + loss3 * 0.1 * coefficent
 
 
                     loss.backward()
@@ -166,7 +170,9 @@ if __name__ == '__main__':
 
                 predictionLoss += ((criterion(EinSout,SE) + criterion(SinEout,E))/2).item()
 
-                loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)     
+                # loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)     
+
+                loss = loss1 + loss2 + loss3 * 0.1 * coefficent
 
                 testing_loss  += loss.item()
                 testing_loss1 += loss1.item()
@@ -181,7 +187,7 @@ if __name__ == '__main__':
                     concatenate = concatenate.detach()
                     concatenate = concatenate.cpu()
                     concatenate = convertDataToBGR(concatenate)
-                    concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=False,pad_value=255)
+                    concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=False,pad_value=0)
 
                     concatenate = concatenate.numpy()
                     concatenate = np.transpose(concatenate,(1,2,0))

@@ -9,8 +9,8 @@ import time
 import os
 import re
 
-YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data0'
-YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data0'
+YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data5'
+# YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data5'
 
 ymlFiles = []
 for root,dirs,files in os.walk(YMLFilePath):

@@ -162,73 +162,89 @@ class FakeSinglePairDataset(Dataset):
 
 
 
-def convertDataToBGR(data):
-    dim = len(np.shape(data))
-    CV_PI = 3.1415926535897932384626433832795
+def convertDataToBGR(datas):
+    dim = len(np.shape(datas))
+
+    def processSingleImg(data):
+        toLeft = data[0]
+        toRight = data[1]
+        toUp = data[2]
+        toDown = data[3]
+        peopleNum = toLeft + toRight + toUp + toDown
+        size = np.shape(toLeft)[0]
+
+        peopleNumFigure = np.zeros([size,size,3])
+        toLeftFigure = np.zeros([size,size,3])
+        toRightFigure = np.zeros([size,size,3])
+        toUpFigure = np.zeros([size,size,3])
+        toDownFigure = np.zeros([size,size,3])
+
+        visThreshold = 70
+        singleVisThreshold = visThreshold / 2
+
+        peopleNum[peopleNum > visThreshold] = visThreshold
+        peopleNum = peopleNum * 255/visThreshold
+        toLeft[toLeft > singleVisThreshold] = singleVisThreshold
+        toLeft = toLeft * 255 / singleVisThreshold
+        toRight[toRight > singleVisThreshold] = singleVisThreshold
+        toRight = toRight * 255 / singleVisThreshold
+        toUp[toUp > singleVisThreshold] = singleVisThreshold
+        toUp = toUp * 255 / singleVisThreshold
+        toDown[toDown > singleVisThreshold] = singleVisThreshold
+        toDown = toDown * 255 /singleVisThreshold
+
+        peopleNumFigure[:,:,0] = 255 - peopleNum
+        peopleNumFigure[:,:,1] = 255 - peopleNum
+        peopleNumFigure[:,:,2] = 255 - peopleNum
+        
+        toLeftFigure[:,:,0] = 255 - toLeft
+        toLeftFigure[:,:,1] = 255 - toLeft
+        toLeftFigure[:,:,2] = 255
+
+        toRightFigure[:,:,0] = 255
+        toRightFigure[:,:,1] = 255 - toRight
+        toRightFigure[:,:,2] = 255 - toRight
+
+        toUpFigure[:,:,0] = 255 - toUp
+        toUpFigure[:,:,1] = ((255 - 92) * (255 - toUp) / 255)  + 92
+        toUpFigure[:,:,2] = 255
+
+        toDownFigure[:,:,0] = 255
+        toDownFigure[:,:,1] = 255 - toDown
+        toDownFigure[:,:,2] = ((255 - 158) * (255 - toDown) / 255)  + 158
+
+        peopleNumFigure = peopleNumFigure.astype(np.uint8)
+        toLeftFigure = toLeftFigure.astype(np.uint8)
+        toRightFigure = toRightFigure.astype(np.uint8)
+        toUpFigure = toUpFigure.astype(np.uint8)
+        toDownFigure = toDownFigure.astype(np.uint8)
+
+        bgr = np.zeros([size,size*5,3])
+        bgr[:,size*0:size*1,:] = toUpFigure
+        bgr[:,size*1:size*2,:] = toDownFigure
+        bgr[:,size*2:size*3,:] = peopleNumFigure
+        bgr[:,size*3:size*4,:] = toLeftFigure
+        bgr[:,size*4:size*5,:] = toRightFigure
+        return bgr
+
     if dim == 3: 
-        L1 = data[1]
-        L2 = data[0]
-        size = np.shape(L1)[0]
-        hls = np.zeros([size,size,3])
-        theta1 = 0
-        theta2 = (85/255.0)*180.0
-        theta1 = theta1 * CV_PI / 180
-        theta2 = theta2 * CV_PI / 180
-        L3 = np.sqrt(L1 * L1 + L2 * L2 + 2 * L1 * L2 * math.cos(theta1 - theta2))
-        L3[L3<1e-3] = 0.001
-        tmp = (L1*math.cos(theta1) + L2 * math.cos(theta2)) / L3
-        tmp[abs(tmp) > 1] = 1
-        theta3 = np.arccos(tmp)
-        theta3 = theta3 * 180 / CV_PI
-        L3 = L1 + L2
-        L3[L3 > 128] = 128
-        hls[:,:,0] = theta3
-        hls[:,:,1] = 255-L3
-        hls[:,:,2] = 255
-        hls = hls.astype(np.uint8)
-        bgr = cv2.cvtColor(hls,cv2.COLOR_HLS2BGR)
+        bgr = processSingleImg(datas)
         return bgr
     
     if dim == 4:
-        data = data.numpy()
+        datas = datas.numpy()
         bgrs = []
-        for k in range(np.shape(data)[0]):
-            singleData = data[k]
-            toLeft = singleData[0]
-            toRight = singleData[1]
-            size = np.shape(toRight)[0]
-            hls = np.zeros([size,size,3])
-            L1 = toRight
-            L2 = toLeft
-            theta1 = 0
-            theta2 = (85/255.0)*180.0
-            theta1 = theta1 * CV_PI / 180
-            theta2 = theta2 * CV_PI / 180
-            L3 = np.sqrt(L1 * L1 + L2 * L2 + 2 * L1 * L2 * math.cos(theta1 - theta2))
-            L3[L3<1e-3] = 0.001
-            tmp = (L1*math.cos(theta1) + L2 * math.cos(theta2)) / L3
-            tmp[abs(tmp) > 1] = 1
-            theta3 = np.arccos(tmp)
-            theta3 = theta3 * 180 / CV_PI
-            L3 = L1 + L2
-            L3[L3 > 128] = 128
-            hls[:,:,0] = theta3
-            hls[:,:,1] = 255-L3
-            hls[:,:,2] = 255
-            hls = hls.astype(np.uint8)
-            bgr = cv2.cvtColor(hls,cv2.COLOR_HLS2BGR)
+        for k in range(np.shape(datas)[0]):
+            bgr = processSingleImg(datas[k])
             bgrs.append(bgr)
         bgrs = np.array(bgrs)
         bgrs = np.transpose(bgrs,(0,3,1,2))
         bgrs = torch.Tensor(bgrs)
         return bgrs
-    
+
     else:
         print('dim error! check data dim.(dim should be 3 or 4)')
         exit(-1)
-
-
-    
 
 
 
@@ -287,8 +303,8 @@ class FakeDeltaTDataset(Dataset):
         self.train = train
         self.E_path = E_path
         self.SE_path = SE_path
-        eastIndex = [i*30 + j for i in range(27) for j in [1,10,20] ]
-        southEastIndex = [i*60 + 30 + j for i in range(13) for j in [1,10,20] ]
+        eastIndex = [i*30 + j for i in range(24) for j in [1,10,20] ]
+        southEastIndex = [i*60 + 30 + j for i in range(12) for j in [1,10,20] ]
         # eastIndex = [i*30 + j for i in range(27) for j in [23,24,25,26,27] ]
         # southEastIndex = [i*30 + j for i in range(27) for j in [23,24,25,26,27] ]
         eastIndex = np.array(eastIndex)
@@ -317,7 +333,7 @@ class FakeDeltaTDataset(Dataset):
         if self.train:
             return len(self.eastIndex)
         else:
-            return 5*26
+            return 5*24
 
 
     def __getitem__(self,idx):
@@ -357,15 +373,27 @@ class FakeDeltaTDataset(Dataset):
         toLeft = SEData[4]
         toLeft = cv2.resize(toLeft,(512,512))
         toLeft = toLeft[np.newaxis,:]
-        SEStateMap = np.concatenate((toLeft,toRight))
-
+        toUp = SEData[6]
+        toUp = cv2.resize(toUp,(512,512))
+        toUp = toUp[np.newaxis,:]
+        toDown = SEData[7]
+        toDown = cv2.resize(toDown,(512,512))
+        toDown = toDown[np.newaxis,:]
+        SEStateMap = np.concatenate((toLeft,toRight,toUp,toDown))
+        
         toRight = EData[5]
         toRight = cv2.resize(toRight,(512,512))
         toRight = toRight[np.newaxis,:]
         toLeft = EData[4]
         toLeft = cv2.resize(toLeft,(512,512))
         toLeft = toLeft[np.newaxis,:]
-        EStateMap = np.concatenate((toLeft,toRight))
+        toUp = EData[6]
+        toUp = cv2.resize(toUp,(512,512))
+        toUp = toUp[np.newaxis,:]
+        toDown = EData[7]
+        toDown = cv2.resize(toDown,(512,512))
+        toDown = toDown[np.newaxis,:]
+        EStateMap = np.concatenate((toLeft,toRight,toUp,toDown))
 
         # bgr = convertDataToBGR(EStateMap)
         # cv2.imwrite('/home/hsc/test.jpg',bgr)
@@ -406,7 +434,7 @@ if __name__ == '__main__':
 
     
 
-    filename = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4/East_M111_P0.npy'
+    filename = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data5/EastSouth_M40_P0.npy'
     data = np.load(filename,allow_pickle=True)
 
     toRight = data[5]
@@ -415,14 +443,20 @@ if __name__ == '__main__':
     toLeft = data[4]
     toLeft = cv2.resize(toLeft,(512,512))
     toLeft = toLeft[np.newaxis,:]
-    data = np.concatenate((toLeft,toRight))
+    toUp = data[6]
+    toUp = cv2.resize(toUp,(512,512))
+    toUp = toUp[np.newaxis,:]
+    toDown = data[7]
+    toDown = cv2.resize(toDown,(512,512))
+    toDown = toDown[np.newaxis,:]
+    data = np.concatenate((toLeft,toRight,toUp,toDown))
     data = np.array(data)
     bgr = convertDataToBGR(data)
-    cv2.imwrite('/home/hsc/test1.jpg',bgr)
+    cv2.imwrite('/home/hsc/test2.jpg',bgr)
 
 
 
-    test = FakeDeltaTDataset('/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4','/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4',1,False)
+    test = FakeDeltaTDataset('/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data5','/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data5',0,False)
 
     for i in range(5*26):
         test[i]
