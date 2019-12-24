@@ -9,8 +9,8 @@ import time
 import os
 import re
 
-YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data4'
-YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data4'
+YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data0'
+YMLFilePath = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data0'
 
 ymlFiles = []
 for root,dirs,files in os.walk(YMLFilePath):
@@ -25,7 +25,7 @@ t1 = time.time()
 maxvalue = 0
 
 for i,ymlFile in enumerate(ymlFiles):
-    if i%500 == 0:
+    if i%100 == 0:
         print('Reading %d/%d, time = %d sec'%(i,datasize, (time.time() - t1)))
     fs = cv2.FileStorage(ymlFile,cv2.FileStorage_READ)
     if not fs.isOpened():
@@ -36,10 +36,14 @@ for i,ymlFile in enumerate(ymlFiles):
     stateMap = fs.getNode('stateMap').mat()/simulationTime
     toRight = fs.getNode('toRight').mat()/simulationTime
     toLeft = fs.getNode('toLeft').mat()/simulationTime
+    toUp = fs.getNode('toUp').mat()/simulationTime
+    toDown = fs.getNode('toDown').mat()/simulationTime
+
+
     originPedestrianMatrix = fs.getNode('originPedestrianMatrix').mat()
     generatedPedestrianMatrix = fs.getNode('generatedPedestrianMatrix').mat()
     
-    tup = (simulationTime,originPedestrianMatrix,generatedPedestrianMatrix,stateMap,toLeft,toRight)
+    tup = (simulationTime,originPedestrianMatrix,generatedPedestrianMatrix,stateMap,toLeft,toRight,toUp,toDown)
     tup = np.array(tup)
     np.save(ymlFile[0:-4] + '.npy',tup)
     fs.release()
