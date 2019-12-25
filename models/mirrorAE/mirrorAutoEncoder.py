@@ -6,6 +6,7 @@
 
 import numpy as np
 from cv2 import cv2
+import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -19,6 +20,7 @@ import os,sys
 from logger import Logger
 from AutoEncoder import BehaviorModelAutoEncoder
 import itertools
+from tensorboardX import SummaryWriter
 
 
 if __name__ == '__main__':
@@ -52,6 +54,12 @@ if __name__ == '__main__':
             resultDir = os.path.join(resultDir,curTime)
             os.makedirs(resultDir)
 
+        tbLogDir = os.path.join(resultDir,'tbLog')
+        tensorboardWriter = SummaryWriter(logdir=tbLogDir,flush_secs=1)
+
+        # tensorboardShowCommand = 'tensorboard --logdir ' + tbLogDir + ' --bind_all'
+        # os.popen(tensorboardShowCommand)
+        
         # 创建log文件、img文件夹和modelParam文件夹，分别表示本次实验的日志、实验结果存储文件夹和模型参数存储文件夹
         logfileName = os.path.join(resultDir,curTime+'.txt')
         sys.stdout = Logger(logfileName)
@@ -109,6 +117,9 @@ if __name__ == '__main__':
             predictionLoss = running_loss = running_loss1 = running_loss2 = running_loss3 = 0
             count = 0
 
+            lossList = []
+            reconsDict = {}
+            zzDict = {}
             # 训练
             for i in range(5):
                 fakeSingleTrainLoader = fakeSingleTrainLoaders[i]
@@ -144,13 +155,37 @@ if __name__ == '__main__':
                     running_loss2 += loss2.item()
                     running_loss3 += loss3.item()
 
+                    lossList.append(running_loss)
+                    reconsDict.setdefault('ee',[])
+                    reconsDict['ee'].append(running_loss1)
+                    reconsDict.setdefault('ss',[])
+                    reconsDict['ss'].append(running_loss2)
+                    nowDeltaT = 'deltaT' + str(deltaT)
+                    zzDict.setdefault(nowDeltaT,[])
+                    zzDict[nowDeltaT].append(running_loss3)
+
                     if count == 1:
                         if fakeSingleTrainLoader.__len__() - (i+1) < count:
                             trainingPercent = 100
                         print('[%d, %5d%%]deltaT = %d, training loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1, trainingPercent, deltaT,running_loss / count,running_loss1/count,running_loss2/count,running_loss3/count))
                         count = 0
                         running_loss = running_loss1 = running_loss2 = running_loss3 = 0
-                    
+
+            running_loss3 = np.average(list(zzDict.values()))
+            for key in reconsDict.keys():
+                reconsDict[key] = np.average(reconsDict[key])
+            for key in zzDict.keys():
+                zzDict[key] = np.average(zzDict[key])
+            running_loss = np.average(lossList)
+            running_loss1 = reconsDict['ee']
+            running_loss2 = reconsDict['ss']
+            
+            tensorboardWriter.add_scalar('training/loss',running_loss,epoch)
+            tensorboardWriter.add_scalars('training/recons loss',{'E-E recons loss':running_loss1,'S-S recons loss':running_loss2},epoch)
+            tensorboardWriter.add_scalar('training/z-z loss',running_loss3,epoch)
+            tensorboardWriter.add_scalars('training/z-z single deltaT loss',zzDict,epoch)
+            tensorboardWriter.flush()
+
             testing_loss = testing_loss1 = testing_loss2 = testing_loss3 = 0
             count = 0
 
@@ -233,6 +268,12 @@ if __name__ == '__main__':
             print('[%d，%6s] testing  loss: %.3f, prediction loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,predictionLoss/count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
             print('[%d, %6s] theta1 = %.3f, theta2 = %.3f, theta3 = %.3f'%(epoch+1, '--',theta1.item(),theta2.item(),theta3.item()))
 
+            tensorboardWriter.add_scalar('testing/loss',testing_loss/count,epoch)
+            tensorboardWriter.add_scalars('testing/recons loss',{'E-E recons loss':testing_loss1/count,'S-S recons loss':testing_loss2/count},epoch)
+            tensorboardWriter.add_scalar('testing/z-z loss',testing_loss3/count,epoch)
+            tensorboardWriter.add_scalar('testing/prediction loss',predictionLoss/count,epoch)
+            tensorboardWriter.flush()
+
             print()
             print('='*20,end = ' ')
             print('Time is ',time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) ,end = ' ')
@@ -244,6 +285,8 @@ if __name__ == '__main__':
             print('running %d h,%d m,%d s'%(hours,minutes,int(using_time)),end = ' ')
             print('='*20)
             print()
+
+
 
     if TestOrTrain == 'test':
 
