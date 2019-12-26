@@ -333,14 +333,15 @@ class FakeDeltaTDataset(Dataset):
         if self.train:
             return len(self.eastIndex)
         else:
-            return 5*24
+            return 3*24
 
 
     def __getitem__(self,idx):
 
         resultSouthEastIdx = resultEastIdx = 0
         if not self.train:
-            resultSouthEastIdx = resultEastIdx = int(idx/5)*30 + int(idx)%5 + 25
+            testingIndex = [i*30 + j for i in range(24) for j in [2,11,21] ]
+            resultSouthEastIdx = resultEastIdx = testingIndex[idx]
 
         else:
             resultEastIdx = self.eastIndex[idx]

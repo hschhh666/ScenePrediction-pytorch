@@ -57,9 +57,6 @@ if __name__ == '__main__':
         tbLogDir = os.path.join(resultDir,'tbLog')
         tensorboardWriter = SummaryWriter(logdir=tbLogDir,flush_secs=1)
 
-        # tensorboardShowCommand = 'tensorboard --logdir ' + tbLogDir + ' --bind_all'
-        # os.popen(tensorboardShowCommand)
-        
         # 创建log文件、img文件夹和modelParam文件夹，分别表示本次实验的日志、实验结果存储文件夹和模型参数存储文件夹
         logfileName = os.path.join(resultDir,curTime+'.txt')
         sys.stdout = Logger(logfileName)
@@ -114,12 +111,18 @@ if __name__ == '__main__':
         # 2000个epoch
         for epoch in range(2000):
 
-            predictionLoss = running_loss = running_loss1 = running_loss2 = running_loss3 = 0
+            # 每个epoch都将需要计算的内容归零
+            running_loss = running_loss1 = running_loss2 = running_loss3 = 0
             count = 0
 
+            # 可视化训练集上的loss
             lossList = []
+            # 可视化训练集上的e-e和s-s重构误差
             reconsDict = {}
+            # 可视化不同deltaT的隐变量距离
             zzDict = {}
+            # 可视化网络中不同层的平均梯度值以检查是否有梯度消失现象
+            gradDict = {}
             # 训练
             for i in range(5):
                 fakeSingleTrainLoader = fakeSingleTrainLoaders[i]
@@ -144,17 +147,26 @@ if __name__ == '__main__':
 
                     # loss = loss1/theta1 +  loss2/theta2 + coefficent * loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)
 
-                    loss = loss1 + loss2 + loss3 * 0.1 * coefficent
-
+                    loss = loss1 + 10*loss2 + loss3 * 0.1 * coefficent
 
                     loss.backward()
                     optimizer.step()
-                    
+
+                    # 可视化网络深层、中层、浅层的平均梯度到tensorboard
+                    paramsDict = dict(EastModel.named_parameters())
+                    gradDict.setdefault('conv1_weight',[])
+                    gradDict['conv1_weight'].append(np.average((paramsDict['conv1.weight'].grad).detach().cpu().numpy()))
+                    gradDict.setdefault('fc1_weight',[])
+                    gradDict['fc1_weight'].append(np.average((paramsDict['fc1.weight'].grad).detach().cpu().numpy()))
+                    gradDict.setdefault('dconv3_weight',[])
+                    gradDict['dconv3_weight'].append(np.average((paramsDict['dconv3.weight'].grad).detach().cpu().numpy()))
+
                     running_loss += loss.item()
                     running_loss1 += loss1.item()
                     running_loss2 += loss2.item()
                     running_loss3 += loss3.item()
 
+                    # 可视化loss、reconsLoss和deltaT z-z loss到tensorboard
                     lossList.append(running_loss)
                     reconsDict.setdefault('ee',[])
                     reconsDict['ee'].append(running_loss1)
@@ -171,6 +183,7 @@ if __name__ == '__main__':
                         count = 0
                         running_loss = running_loss1 = running_loss2 = running_loss3 = 0
 
+            # 计算需要可视化的内容的均值
             running_loss3 = np.average(list(zzDict.values()))
             for key in reconsDict.keys():
                 reconsDict[key] = np.average(reconsDict[key])
@@ -179,14 +192,20 @@ if __name__ == '__main__':
             running_loss = np.average(lossList)
             running_loss1 = reconsDict['ee']
             running_loss2 = reconsDict['ss']
+            for key in gradDict.keys():
+                gradDict[key] = np.average(gradDict[key])
             
+            # 可视化到tensorboard
             tensorboardWriter.add_scalar('training/loss',running_loss,epoch)
             tensorboardWriter.add_scalars('training/recons loss',{'E-E recons loss':running_loss1,'S-S recons loss':running_loss2},epoch)
             tensorboardWriter.add_scalar('training/z-z loss',running_loss3,epoch)
             tensorboardWriter.add_scalars('training/z-z single deltaT loss',zzDict,epoch)
+            tensorboardWriter.add_scalars('training/grads',gradDict,epoch)
             tensorboardWriter.flush()
 
-            testing_loss = testing_loss1 = testing_loss2 = testing_loss3 = 0
+            # 以下为测试时的内容
+            # 每个epoch都将需要计算的内容归零
+            EPredictionLoss = SEPredictionLoss = predictionLoss = testing_loss = testing_loss1 = testing_loss2 = testing_loss3 = 0
             count = 0
 
             # 计算当前epoch的testing loss，并可视化部分testing结果
@@ -203,11 +222,14 @@ if __name__ == '__main__':
                 loss2 = criterion(SOut,SE)
                 loss3 = criterion(Ez,Sz)
 
-                predictionLoss += ((criterion(EinSout,SE) + criterion(SinEout,E))/2).item()
+                # 东门、东南门和俩门的预测误差
+                EPredictionLoss += criterion(SinEout,E)
+                SEPredictionLoss += criterion(EinSout,SE)
+                predictionLoss += ((criterion(SinEout,E) + criterion(EinSout,SE))/2).item()
 
                 # loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)     
 
-                loss = loss1 + loss2 + loss3 * 0.1 * coefficent
+                loss = loss1 + 10*loss2
 
                 testing_loss  += loss.item()
                 testing_loss1 += loss1.item()
@@ -216,7 +238,6 @@ if __name__ == '__main__':
                 count += 1
 
                 
-
                 if i == 0:
                     concatenate = torch.cat([E,SE,EOut,SOut,SinEout,EinSout],0)
                     concatenate = concatenate.detach()
@@ -268,10 +289,12 @@ if __name__ == '__main__':
             print('[%d，%6s] testing  loss: %.3f, prediction loss: %.3f, E-E recons loss: %.3f, S-S recons loss: %.3f, z-z loss: %.5f' %(epoch + 1,'--', testing_loss / count,predictionLoss/count,testing_loss1/count,testing_loss2/count,testing_loss3/count))
             print('[%d, %6s] theta1 = %.3f, theta2 = %.3f, theta3 = %.3f'%(epoch+1, '--',theta1.item(),theta2.item(),theta3.item()))
 
+            # 可视化testing loss、recons loss、俩门和各自门的prediction loss到tensorboard
             tensorboardWriter.add_scalar('testing/loss',testing_loss/count,epoch)
             tensorboardWriter.add_scalars('testing/recons loss',{'E-E recons loss':testing_loss1/count,'S-S recons loss':testing_loss2/count},epoch)
             tensorboardWriter.add_scalar('testing/z-z loss',testing_loss3/count,epoch)
             tensorboardWriter.add_scalar('testing/prediction loss',predictionLoss/count,epoch)
+            tensorboardWriter.add_scalars('testing/prediction losses',{'E prediction loss':EPredictionLoss/count,'SE prediction loss':SEPredictionLoss/count},epoch)
             tensorboardWriter.flush()
 
             print()
@@ -285,7 +308,6 @@ if __name__ == '__main__':
             print('running %d h,%d m,%d s'%(hours,minutes,int(using_time)),end = ' ')
             print('='*20)
             print()
-
 
 
     if TestOrTrain == 'test':

@@ -24,23 +24,23 @@ from logger import Logger
 class BehaviorModelAutoEncoder(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(4,3,3,padding=1,stride=2)
-        self.conv2 = nn.Conv2d(3,5,3,padding=1,stride=2)
-        self.conv3 = nn.Conv2d(5,5,3,padding=1,stride=2)
+        self.conv1 = nn.Conv2d(4,6,3,padding=1,stride=2)
+        self.conv2 = nn.Conv2d(6,8,3,padding=1,stride=2)
+        self.conv3 = nn.Conv2d(8,8,3,padding=1,stride=2)
 
-        self.fc1 = nn.Linear(5*64*64,100)
-        self.fc2 = nn.Linear(100,20)
+        self.fc1 = nn.Linear(8*64*64,100)
+        self.fc2 = nn.Linear(100,80)
 
-        self.fc3 = nn.Linear(20,100)
+        self.fc3 = nn.Linear(80,100)
         self.fc4 = nn.Linear(100,500)
-        self.fc5 = nn.Linear(500,5*64*64)
+        self.fc5 = nn.Linear(500,8*64*64)
 
         # self.maxpool22 = nn.MaxPool2d(2,2)        
         self.upsample22 = nn.Upsample(scale_factor=2,mode='nearest')
 
-        self.dconv1 = nn.Conv2d(5,5,3,padding=1)
-        self.dconv2 = nn.Conv2d(5,3,3,padding=1)
-        self.dconv3 = nn.Conv2d(3,4,3,padding=1)
+        self.dconv1 = nn.Conv2d(8,8,3,padding=1)
+        self.dconv2 = nn.Conv2d(8,6,3,padding=1)
+        self.dconv3 = nn.Conv2d(6,4,3,padding=1)
 
 
         # self.transConv1 = nn.ConvTranspose2d(5,5,4,padding = 1,stride = 2)
@@ -57,7 +57,7 @@ class BehaviorModelAutoEncoder(nn.Module):
         x = (F.relu(self.conv1(x)))
         x = (F.relu(self.conv2(x)))
         x = (F.relu(self.conv3(x)))
-        x = x.view(-1,5*64*64)
+        x = x.view(-1,8*64*64)
         x = F.relu(self.fc1(x))
         x = (self.fc2(x))
         return x
@@ -66,10 +66,10 @@ class BehaviorModelAutoEncoder(nn.Module):
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
         x = F.relu(self.fc5(x))
-        x = x.view(-1,5,64,64)
+        x = x.view(-1,8,64,64)
         x = F.relu(self.dconv1(self.upsample22(x)))
         x = F.relu(self.dconv2(self.upsample22(x)))
-        x = (self.dconv3(self.upsample22(x)))
+        x = F.relu(self.dconv3(self.upsample22(x)))
         return x
 
 
