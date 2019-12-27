@@ -21,9 +21,26 @@ from logger import Logger
 from AutoEncoder import BehaviorModelAutoEncoder
 import itertools
 from tensorboardX import SummaryWriter
+import argparse
 
 
 if __name__ == '__main__':
+
+
+    argParser = argparse.ArgumentParser(description='python arguments')
+    argParser.add_argument('-cuda',type=int ,help='cuda device id')
+    argParser.add_argument('-zdim',type=int,help='z dimention')
+    args = argParser.parse_args()
+    if args.cuda == None or args.zdim == None:
+        print('[Error] No parameter. Program exit')
+        exit(-2)
+    if args.cuda < 0 or args.cuda >= torch.cuda.device_count():
+        print('cuda %d does not exit! Program exit'%args.cuda)
+        exit(-2)
+    if args.zdim <= 0:
+        print('z dim cannot <= zero! Program exit')
+        exit(-2)
+
 
     TestOrTrain = 'train'
     saveThisExper = False
@@ -31,7 +48,9 @@ if __name__ == '__main__':
     E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data5'
     SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data5'
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = 'cuda:' + str(args.cuda)
+    device = torch.device(device)
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     if TestOrTrain =='train':
 
@@ -76,10 +95,11 @@ if __name__ == '__main__':
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=4,shuffle=True)
         
         print('device = ',device)
+        print('z-dim = ',args.zdim)
 
         # 加载模型
-        EastModel = BehaviorModelAutoEncoder()
-        SouthEastModel = BehaviorModelAutoEncoder()
+        EastModel = BehaviorModelAutoEncoder(args.zdim)
+        SouthEastModel = BehaviorModelAutoEncoder(args.zdim)
         theta1 = torch.Tensor([1])
         theta2 = torch.Tensor([0.1])
         theta3 = torch.Tensor([10])
