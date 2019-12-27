@@ -147,7 +147,7 @@ if __name__ == '__main__':
 
                     # loss = loss1/theta1 +  loss2/theta2 + coefficent * loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)
 
-                    loss = loss1 + 10*loss2 + loss3 * 0.1 * coefficent
+                    loss = loss1 + loss2 + loss3 * 1 * coefficent
 
                     loss.backward()
                     optimizer.step()
@@ -156,8 +156,8 @@ if __name__ == '__main__':
                     paramsDict = dict(EastModel.named_parameters())
                     gradDict.setdefault('conv1_weight',[])
                     gradDict['conv1_weight'].append(np.average((paramsDict['conv1.weight'].grad).detach().cpu().numpy()))
-                    gradDict.setdefault('fc1_weight',[])
-                    gradDict['fc1_weight'].append(np.average((paramsDict['fc1.weight'].grad).detach().cpu().numpy()))
+                    gradDict.setdefault('fc2_weight',[])
+                    gradDict['fc2_weight'].append(np.average((paramsDict['fc2.weight'].grad).detach().cpu().numpy()))
                     gradDict.setdefault('dconv3_weight',[])
                     gradDict['dconv3_weight'].append(np.average((paramsDict['dconv3.weight'].grad).detach().cpu().numpy()))
 
@@ -167,14 +167,14 @@ if __name__ == '__main__':
                     running_loss3 += loss3.item()
 
                     # 可视化loss、reconsLoss和deltaT z-z loss到tensorboard
-                    lossList.append(running_loss)
+                    lossList.append(loss.item())
                     reconsDict.setdefault('ee',[])
-                    reconsDict['ee'].append(running_loss1)
+                    reconsDict['ee'].append(loss1.item())
                     reconsDict.setdefault('ss',[])
-                    reconsDict['ss'].append(running_loss2)
+                    reconsDict['ss'].append(loss2.item())
                     nowDeltaT = 'deltaT' + str(deltaT)
                     zzDict.setdefault(nowDeltaT,[])
-                    zzDict[nowDeltaT].append(running_loss3)
+                    zzDict[nowDeltaT].append(loss3.item())
 
                     if count == 1:
                         if fakeSingleTrainLoader.__len__() - (i+1) < count:
@@ -229,7 +229,7 @@ if __name__ == '__main__':
 
                 # loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)     
 
-                loss = loss1 + 10*loss2
+                loss = loss1 + loss2
 
                 testing_loss  += loss.item()
                 testing_loss1 += loss1.item()
@@ -265,7 +265,7 @@ if __name__ == '__main__':
                 concatenate = concatenate.detach()
                 concatenate = concatenate.cpu()
                 concatenate = convertDataToBGR(concatenate)
-                concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=False,pad_value=255)
+                concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=False,pad_value=0)
 
                 concatenate = concatenate.numpy()
                 concatenate = np.transpose(concatenate,(1,2,0))

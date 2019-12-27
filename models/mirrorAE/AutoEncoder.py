@@ -29,9 +29,9 @@ class BehaviorModelAutoEncoder(nn.Module):
         self.conv3 = nn.Conv2d(8,8,3,padding=1,stride=2)
 
         self.fc1 = nn.Linear(8*64*64,100)
-        self.fc2 = nn.Linear(100,80)
+        self.fc2 = nn.Linear(100,2)
 
-        self.fc3 = nn.Linear(80,100)
+        self.fc3 = nn.Linear(2,100)
         self.fc4 = nn.Linear(100,500)
         self.fc5 = nn.Linear(500,8*64*64)
 

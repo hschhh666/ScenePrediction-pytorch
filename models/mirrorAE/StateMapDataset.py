@@ -160,8 +160,6 @@ class FakeSinglePairDataset(Dataset):
 
 
 
-
-
 def convertDataToBGR(datas):
     dim = len(np.shape(datas))
 
