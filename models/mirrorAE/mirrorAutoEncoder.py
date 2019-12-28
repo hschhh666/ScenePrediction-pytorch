@@ -30,6 +30,7 @@ if __name__ == '__main__':
     argParser = argparse.ArgumentParser(description='python arguments')
     argParser.add_argument('-cuda',type=int ,help='cuda device id')
     argParser.add_argument('-zdim',type=int,help='z dimention')
+    argParser.add_argument('-dropout',type=float ,help='dropout p',default=0)
     args = argParser.parse_args()
     if args.cuda == None or args.zdim == None:
         print('[Error] No parameter. Program exit')
@@ -40,7 +41,9 @@ if __name__ == '__main__':
     if args.zdim <= 0:
         print('z dim cannot <= zero! Program exit')
         exit(-2)
-
+    if args.dropout >=1 or args.dropout <0:
+        print('dropout p should be [0,1). Program exit')
+        exit(-2)
 
     TestOrTrain = 'train'
     saveThisExper = False
@@ -96,10 +99,11 @@ if __name__ == '__main__':
         
         print('device = ',device)
         print('z-dim = ',args.zdim)
+        print('dropout = ',args.dropout)
 
         # 加载模型
-        EastModel = BehaviorModelAutoEncoder(args.zdim)
-        SouthEastModel = BehaviorModelAutoEncoder(args.zdim)
+        EastModel = BehaviorModelAutoEncoder(args.zdim , args.dropout)
+        SouthEastModel = BehaviorModelAutoEncoder(args.zdim , args.dropout)
         theta1 = torch.Tensor([1])
         theta2 = torch.Tensor([0.1])
         theta3 = torch.Tensor([10])
@@ -144,6 +148,8 @@ if __name__ == '__main__':
             # 可视化网络中不同层的平均梯度值以检查是否有梯度消失现象
             gradDict = {}
             # 训练
+            EastModel.train()
+            SouthEastModel.train()
             for i in range(5):
                 fakeSingleTrainLoader = fakeSingleTrainLoaders[i]
                 count = 0
@@ -227,8 +233,10 @@ if __name__ == '__main__':
             # 每个epoch都将需要计算的内容归零
             EPredictionLoss = SEPredictionLoss = predictionLoss = testing_loss = testing_loss1 = testing_loss2 = testing_loss3 = 0
             count = 0
-
+            
             # 计算当前epoch的testing loss，并可视化部分testing结果
+            EastModel.eval()
+            SouthEastModel.eval()
             for i,sample in enumerate(fakeSingleTestLoader):
                 E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
                 optimizer.zero_grad()
@@ -270,7 +278,7 @@ if __name__ == '__main__':
                     imgName = 'Test_Epoch%d.jpg'%epoch
                     imgName = os.path.join(imgFolder,imgName)
                     cv2.imwrite(imgName,concatenate)
-
+            
             # 可视化在训练集上的部分结果
             for i,sample in enumerate(fakeSingleTrainLoader):
                 E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)

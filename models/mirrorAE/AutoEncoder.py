@@ -22,8 +22,11 @@ from logger import Logger
 
 
 class BehaviorModelAutoEncoder(nn.Module):
-    def __init__(self,zdim):
+    def __init__(self,zdim,dropout):
         super().__init__()
+
+        self.dropout = nn.Dropout(dropout)
+
         self.conv1 = nn.Conv2d(4,6,3,padding=1,stride=2)
         self.conv2 = nn.Conv2d(6,8,3,padding=1,stride=2)
         self.conv3 = nn.Conv2d(8,8,3,padding=1,stride=2)
@@ -55,17 +58,24 @@ class BehaviorModelAutoEncoder(nn.Module):
 
     def encoder(self,x):
         x = (F.relu(self.conv1(x)))
+        x = self.dropout(x)
         x = (F.relu(self.conv2(x)))
+        x = self.dropout(x)
         x = (F.relu(self.conv3(x)))
+        x = self.dropout(x)
         x = x.view(-1,8*64*64)
         x = F.relu(self.fc1(x))
+        x = self.dropout(x)
         x = (self.fc2(x))
         return x
 
     def decoder(self,x):
         x = F.relu(self.fc3(x))
+        x = self.dropout(x)
         x = F.relu(self.fc4(x))
+        x = self.dropout(x)
         x = F.relu(self.fc5(x))
+        x = self.dropout(x)
         x = x.view(-1,8,64,64)
         x = F.relu(self.dconv1(self.upsample22(x)))
         x = F.relu(self.dconv2(self.upsample22(x)))
