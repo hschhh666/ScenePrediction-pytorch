@@ -26,36 +26,35 @@ import argparse
 
 if __name__ == '__main__':
 
-
-    argParser = argparse.ArgumentParser(description='python arguments')
-    argParser.add_argument('-cuda',type=int ,help='cuda device id')
-    argParser.add_argument('-zdim',type=int,help='z dimention')
-    argParser.add_argument('-dropout',type=float ,help='dropout p',default=0)
-    args = argParser.parse_args()
-    if args.cuda == None or args.zdim == None:
-        print('[Error] No parameter. Program exit')
-        exit(-2)
-    if args.cuda < 0 or args.cuda >= torch.cuda.device_count():
-        print('cuda %d does not exit! Program exit'%args.cuda)
-        exit(-2)
-    if args.zdim <= 0:
-        print('z dim cannot <= zero! Program exit')
-        exit(-2)
-    if args.dropout >=1 or args.dropout <0:
-        print('dropout p should be [0,1). Program exit')
-        exit(-2)
-
     TestOrTrain = 'train'
     saveThisExper = False
 
     E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data5'
     SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data5'
 
-    device = 'cuda:' + str(args.cuda)
-    device = torch.device(device)
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
     if TestOrTrain =='train':
+        # 解析参数
+        argParser = argparse.ArgumentParser(description='python arguments')
+        argParser.add_argument('-cuda',type=int ,help='cuda device id')
+        argParser.add_argument('-zdim',type=int,help='z dimention')
+        argParser.add_argument('-dropout',type=float ,help='dropout p',default=0)
+        args = argParser.parse_args()
+        if args.cuda == None or args.zdim == None:
+            print('[Error] No parameter. Program exit')
+            exit(-2)
+        if args.cuda < 0 or args.cuda >= torch.cuda.device_count():
+            print('cuda %d does not exit! Program exit'%args.cuda)
+            exit(-2)
+        if args.zdim <= 0:
+            print('z dim cannot <= zero! Program exit')
+            exit(-2)
+        if args.dropout >=1 or args.dropout <0:
+            print('dropout p should be [0,1). Program exit')
+            exit(-2)
+
+        device = 'cuda:' + str(args.cuda)
+        device = torch.device(device)
+        # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # 当前路径下的resultDir用来保存每次的试验结果，包括log、结果图、训练参数。每次实验都在resultDir下创建一个以实验开始时间为名字的文件夹，该文件夹下保存当次实验的所有结果。
         # 如果resultDir不存在，则创建
@@ -246,23 +245,26 @@ if __name__ == '__main__':
                 EinSout = SouthEastModel.decoder(Ez)
                 SinEout = EastModel.decoder(Sz)
 
-                loss1 = criterion(EOut,E)
-                loss2 = criterion(SOut,SE)
-                loss3 = criterion(Ez,Sz)
+                loss1 = (criterion(EOut,E)).item()
+                loss2 = (criterion(SOut,SE)).item()
+                loss3 = (criterion(Ez,Sz)).item()
 
                 # 东门、东南门和俩门的预测误差
-                EPredictionLoss += criterion(SinEout,E)
-                SEPredictionLoss += criterion(EinSout,SE)
-                predictionLoss += ((criterion(SinEout,E) + criterion(EinSout,SE))/2).item()
+                EPLoss = (criterion(SinEout,E)).item()
+                SEPLoss = (criterion(EinSout,SE)).item()
+
+                EPredictionLoss += EPLoss
+                SEPredictionLoss += SEPLoss
+                predictionLoss += (EPLoss + SEPLoss)/2
 
                 # loss = loss1/theta1 +  loss2/theta2 + loss3/theta3 + torch.log(theta1*theta1) + torch.log(theta2*theta2) + torch.log(theta3*theta3)     
 
                 loss = loss1 + loss2
 
-                testing_loss  += loss.item()
-                testing_loss1 += loss1.item()
-                testing_loss2 += loss2.item()
-                testing_loss3 += loss3.item()
+                testing_loss  += loss
+                testing_loss1 += loss1
+                testing_loss2 += loss2
+                testing_loss3 += loss3
                 count += 1
 
                 
@@ -339,84 +341,60 @@ if __name__ == '__main__':
 
 
     if TestOrTrain == 'test':
-
-        modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/20191206_16_02_40/modelParam'
-        typicalTestDataset = typicalTestData(E_dataset_path,SE_dataset_path)
-        typicalTestDataLoader = DataLoader(typicalTestDataset,batch_size=4,shuffle=False)
-
-        EastModel = BehaviorModelAutoEncoder()
-        SouthEastModel = BehaviorModelAutoEncoder()
-
+        print('Start testing...')
+        # 模型路径
+        modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/20191227_23_51_21/modelParam'
+        
+        # 加载模型
+        EastModel = BehaviorModelAutoEncoder(2,0)#这里的参数可能需要更改，注意一下
+        SouthEastModel = BehaviorModelAutoEncoder(2,0)
         EastModel.load_state_dict(torch.load(os.path.join(modelParamFolder,'Easemodel.pth')))
         SouthEastModel.load_state_dict(torch.load(os.path.join(modelParamFolder,'SEmodel.pth')))
+        EastModel.eval()
+        SouthEastModel.eval()
+        device = torch.device('cuda:0')
         EastModel.to(device)
         SouthEastModel.to(device)
-        criterion = nn.MSELoss()
 
+        # 保存典型数据的可视化结果
+        typicalTestDataset = typicalTestData(E_dataset_path,SE_dataset_path)
+        typicalTestDataLoader = DataLoader(typicalTestDataset,batch_size=4,shuffle=False)
+        for i,sample in enumerate(typicalTestDataLoader):
+            E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
+            Ez = EastModel.encoder(E)
+            EinSout = SouthEastModel.decoder(Ez)
+
+            Sz = SouthEastModel.encoder(SE)
+            SinEout = EastModel.decoder(Sz)
+
+            concatenate = torch.cat([E,SinEout,SE,EinSout],0)
+            concatenate = concatenate.detach()
+            concatenate = concatenate.cpu()
+            concatenate = convertDataToBGR(concatenate)
+            concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=False,pad_value=0)
+
+            concatenate = concatenate.numpy()
+            concatenate = np.transpose(concatenate,(1,2,0))
+            imgName = '/home/hsc/typicalTestResult.jpg'
+            cv2.imwrite(imgName,concatenate)
+            print('write img to ', imgName)
+
+        # 保存测试集的隐变量
+        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
+        fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=3*24,shuffle=False) # 这里的batch_size直接取了测试集的数据集大小，后面数据集如果变的话这里也可能要变。如果显存爆的话，这里也可能要变
+        for i,sample in enumerate(fakeSingleTestLoader):
+            E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
+            Ez = EastModel.encoder(E)
+            Sz = SouthEastModel.encoder(SE)
+
+            # 转到cpu
+            Ez = Ez.detach().cpu().numpy()
+            Sz = Sz.detach().cpu().numpy()
+            pass
         
-        zzlossedAVG = 0
-        for fuck in range(20):
-            zzlossed = []
-            coefficent = []
-            for testDeltaT in range(9):
-
-                fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,testDeltaT,train = True)
-                typicalTestDataLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=False)
-                count = 0
-                totalzzloss = 0
-                print('processing deltaT = %d'%(testDeltaT))
-
-                for i,sample in enumerate(typicalTestDataLoader):
-                    E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
-
-                    Ez = EastModel.encoder(E)
-                    EinSout = SouthEastModel.decoder(Ez)
-                    EinEout = EastModel.decoder(Ez)
-
-                    Sz = SouthEastModel.encoder(SE)
-                    SinEout = EastModel.decoder(Sz)
-                    SinSout = SouthEastModel.decoder(Sz)
-
-                    # concatenate = torch.cat([E,SE,EinEout,SinSout,SinEout,EinSout],0)
-                    # concatenate = torch.cat([E,SE,SinEout,EinSout],0)
-                    # concatenate = concatenate.detach()
-                    # concatenate = concatenate.cpu()
-                    # concatenate = convertDataToBGR(concatenate)
-                    # concatenate = torchvision.utils.make_grid(concatenate,nrow=8,normalize=False,pad_value=255)
-
-                    # concatenate = concatenate.numpy()
-                    # concatenate = np.transpose(concatenate,(1,2,0))
-                    # imgName = '/home/hsc/typicalTestResult.jpg'
-                    # cv2.imwrite(imgName,concatenate)
-                    # print('write img to ', imgName)
-
-                    loss = criterion(Ez,Sz)
-
-
-                    Ez = Ez.detach()
-                    Ez = Ez.cpu()
-                    Ez = Ez.numpy()
-                    Sz = Sz.detach()
-                    Sz = Sz.cpu()
-                    Sz = Sz.numpy()
-
-                    totalzzloss += loss.item()
-                    count += 1
-                    # print('z-z mse = ',loss.item())
-
-                # print('testDeltaT = %d,z-z mse = %f '%(testDeltaT,totalzzloss/count))
-                zzlossed.append(totalzzloss/count)
-                coefficent.append(np.exp(testDeltaT*0.55))
-            
-            zzlossed = np.array(zzlossed)
-            print(zzlossed)
-            print()
-            # zzlossed = zzlossed/zzlossed[0]
-            zzlossedAVG += zzlossed
-        zzlossedAVG/=20
-
-        print(zzlossedAVG/zzlossedAVG[0])
-        # print(coefficent)    
+        npzFile = '/home/hsc/testingsetZ.npz'
+        np.savez(npzFile,Ez = Ez,Sz = Sz)
+        print('write npz to ',npzFile)
 
 
             

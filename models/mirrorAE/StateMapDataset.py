@@ -257,7 +257,7 @@ class typicalTestData(Dataset):
         self.E_path = E_path
         self.SE_path = SE_path
         self.deltaT = 0
-        self.idx = [60,180,300,600] # all in ; no one ; all out ; mid
+        self.idx = [60,102,230,180] # all in ; no one ; all out ; mid
         # M = [4,12,20,40]
         # self.idx = [25,55,85,115]
     
@@ -273,21 +273,34 @@ class typicalTestData(Dataset):
         SEData = np.load(SE_npy,allow_pickle=True)
         EData = np.load(E_npy,allow_pickle=True)
 
+
         toRight = SEData[5]
         toRight = cv2.resize(toRight,(512,512))
         toRight = toRight[np.newaxis,:]
         toLeft = SEData[4]
         toLeft = cv2.resize(toLeft,(512,512))
         toLeft = toLeft[np.newaxis,:]
-        SEStateMap = np.concatenate((toLeft,toRight))
-
+        toUp = SEData[6]
+        toUp = cv2.resize(toUp,(512,512))
+        toUp = toUp[np.newaxis,:]
+        toDown = SEData[7]
+        toDown = cv2.resize(toDown,(512,512))
+        toDown = toDown[np.newaxis,:]
+        SEStateMap = np.concatenate((toLeft,toRight,toUp,toDown))
+        
         toRight = EData[5]
         toRight = cv2.resize(toRight,(512,512))
         toRight = toRight[np.newaxis,:]
         toLeft = EData[4]
         toLeft = cv2.resize(toLeft,(512,512))
         toLeft = toLeft[np.newaxis,:]
-        EStateMap = np.concatenate((toLeft,toRight))
+        toUp = EData[6]
+        toUp = cv2.resize(toUp,(512,512))
+        toUp = toUp[np.newaxis,:]
+        toDown = EData[7]
+        toDown = cv2.resize(toDown,(512,512))
+        toDown = toDown[np.newaxis,:]
+        EStateMap = np.concatenate((toLeft,toRight,toUp,toDown))
 
         # bgr = convertDataToBGR(EStateMap)
         # cv2.imwrite('/home/hsc/test.jpg',bgr)
