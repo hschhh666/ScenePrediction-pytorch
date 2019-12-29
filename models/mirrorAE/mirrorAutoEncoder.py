@@ -87,11 +87,8 @@ if __name__ == '__main__':
         os.makedirs(modelParamFolder)
 
         # 加载数据集
-        fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,1,train = True)
-        fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
-
-        fakeSingleTrainsets = [FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,train = True) for i in range(5)]
-        fakeSingleTrainLoaders = [DataLoader(fakeSingleTrainsets[i],batch_size=4,shuffle=True)  for i in range(5)]
+        # fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,1,train = True)
+        # fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
 
         fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=4,shuffle=True)
@@ -150,7 +147,11 @@ if __name__ == '__main__':
             EastModel.train()
             SouthEastModel.train()
             for i in range(5):
-                fakeSingleTrainLoader = fakeSingleTrainLoaders[i]
+                fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,train = True)
+                if fakeSingleTrainset.__len__() > 0:
+                    fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
+                else:
+                    continue
                 count = 0
                 for i,sample in enumerate(fakeSingleTrainLoader):
                     trainingPercent = int(100 * (i+1)/fakeSingleTrainLoader.__len__())
