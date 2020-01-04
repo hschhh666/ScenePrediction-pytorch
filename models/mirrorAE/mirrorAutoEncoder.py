@@ -29,14 +29,12 @@ if __name__ == '__main__':
     TestOrTrain = 'train'
     saveThisExper = False
 
-    E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data5'
-    SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data5'
-
     if TestOrTrain =='train':
         # 解析参数
         argParser = argparse.ArgumentParser(description='python arguments')
         argParser.add_argument('-cuda',type=int ,help='cuda device id')
         argParser.add_argument('-zdim',type=int,help='z dimention')
+        argParser.add_argument('-dataset',type=int)
         argParser.add_argument('-dropout',type=float ,help='dropout p',default=0)
         args = argParser.parse_args()
         if args.cuda == None or args.zdim == None:
@@ -51,6 +49,12 @@ if __name__ == '__main__':
         if args.dropout >=1 or args.dropout <0:
             print('dropout p should be [0,1). Program exit')
             exit(-2)
+        if args.dataset ==None or args.dataset < 0:
+            print('dataset number error! Program exit')
+            exit(-2)
+
+        E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data' + str(args.dataset)
+        SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data' + str(args.dataset)
 
         device = 'cuda:' + str(args.cuda)
         device = torch.device(device)
@@ -95,7 +99,9 @@ if __name__ == '__main__':
         
         print('device = ',device)
         print('z-dim = ',args.zdim)
+        print('dataset number = ',args.dataset)
         print('dropout = ',args.dropout)
+        
 
         # 加载模型
         EastModel = BehaviorModelAutoEncoder(args.zdim , args.dropout)
@@ -345,6 +351,10 @@ if __name__ == '__main__':
         print('Start testing...')
         # 模型路径
         modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/20191227_23_51_21/modelParam'
+
+        # 数据集路径
+        E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data5'
+        SE_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/SouthEastGate/data5'
         
         # 加载模型
         EastModel = BehaviorModelAutoEncoder(2,0)#这里的参数可能需要更改，注意一下
