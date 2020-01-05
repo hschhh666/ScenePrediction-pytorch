@@ -14,3 +14,4 @@ resultDir/
 *.txt
 !readme.txt
 .gitignore
+generateDataIndex.py

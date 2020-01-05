@@ -35,6 +35,7 @@ if __name__ == '__main__':
         argParser.add_argument('-cuda',type=int ,help='cuda device id')
         argParser.add_argument('-zdim',type=int,help='z dimention')
         argParser.add_argument('-dataset',type=int)
+        argParser.add_argument('-dataIndex',type=int)
         argParser.add_argument('-dropout',type=float ,help='dropout p',default=0)
         args = argParser.parse_args()
         if args.cuda == None or args.zdim == None:
@@ -51,6 +52,9 @@ if __name__ == '__main__':
             exit(-2)
         if args.dataset ==None or args.dataset < 0:
             print('dataset number error! Program exit')
+            exit(-2)
+        if args.dataIndex ==None or args.dataIndex < 0:
+            print('dataIndex number error! Program exit')
             exit(-2)
 
         E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data' + str(args.dataset)
@@ -94,13 +98,14 @@ if __name__ == '__main__':
         # fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,1,train = True)
         # fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
 
-        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
+        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,args.dataIndex, train = False)
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=4,shuffle=True)
         
         print('device = ',device)
         print('z-dim = ',args.zdim)
         print('dataset number = ',args.dataset)
         print('dropout = ',args.dropout)
+        print('dataIndex = ',args.dataIndex)
         
 
         # 加载模型
@@ -153,7 +158,7 @@ if __name__ == '__main__':
             EastModel.train()
             SouthEastModel.train()
             for i in range(5):
-                fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,train = True)
+                fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,args.dataIndex,train = True)
                 if fakeSingleTrainset.__len__() > 0:
                     fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)
                 else:
@@ -391,7 +396,7 @@ if __name__ == '__main__':
             print('write img to ', imgName)
 
         # 保存测试集的隐变量
-        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,train = False)
+        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,args.dataIndex,train = False)
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=3*24,shuffle=False) # 这里的batch_size直接取了测试集的数据集大小，后面数据集如果变的话这里也可能要变。如果显存爆的话，这里也可能要变
         for i,sample in enumerate(fakeSingleTestLoader):
             E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)
