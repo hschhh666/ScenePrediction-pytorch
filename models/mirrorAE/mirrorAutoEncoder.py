@@ -140,7 +140,7 @@ if __name__ == '__main__':
         minPredictionLoss = np.inf
 
         # 2000个epoch
-        for epoch in range(2000):
+        for epoch in range(1000):
 
             # 每个epoch都将需要计算的内容归零
             running_loss = running_loss1 = running_loss2 = running_loss3 = 0
@@ -157,7 +157,7 @@ if __name__ == '__main__':
             # 训练
             EastModel.train()
             SouthEastModel.train()
-            for i in range(5):
+            for i in range(7):
                 fakeSingleTrainset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,i,args.dataIndex,train = True)
                 if fakeSingleTrainset.__len__() > 0:
                     fakeSingleTrainLoader = DataLoader(fakeSingleTrainset,batch_size=4,shuffle=True)

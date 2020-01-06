@@ -325,7 +325,7 @@ class FakeDeltaTDataset(Dataset):
         southEastIndex = np.array(southEastIndex)
 
         self.deltaT = deltaT
-        self.TimeInterval = 30
+        self.TimeInterval = 10
         self.eastIndex = []
         self.southEastIndex = southEastIndex
 
@@ -347,14 +347,14 @@ class FakeDeltaTDataset(Dataset):
         if self.train:
             return len(self.eastIndex)
         else:
-            return 3*24
+            return 1 * 72
 
 
     def __getitem__(self,idx):
 
         resultSouthEastIdx = resultEastIdx = 0
         if not self.train:
-            testingIndex = [i*30 + j for i in range(24) for j in [2,11,21] ]
+            testingIndex = [i*10 + j for i in range(72) for j in [5] ]
             resultSouthEastIdx = resultEastIdx = testingIndex[idx]
 
         else:
