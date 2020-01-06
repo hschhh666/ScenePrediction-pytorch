@@ -221,7 +221,13 @@ if __name__ == '__main__':
                         running_loss = running_loss1 = running_loss2 = running_loss3 = 0
 
             # 计算需要可视化的内容的均值
-            running_loss3 = np.average(list(zzDict.values()))
+            running_loss3 = 0
+            loss_count = 0
+            for key in zzDict.keys():
+                running_loss3 += np.sum(zzDict[key])
+                loss_count += len(zzDict[key])
+            running_loss3 = running_loss3 / loss_count
+            # running_loss3 = np.average(list(zzDict.values()))
             for key in reconsDict.keys():
                 reconsDict[key] = np.average(reconsDict[key])
             for key in zzDict.keys():
