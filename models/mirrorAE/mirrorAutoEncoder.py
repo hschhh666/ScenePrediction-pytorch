@@ -361,7 +361,7 @@ if __name__ == '__main__':
     if TestOrTrain == 'test':
         print('Start testing...')
         # 模型路径
-        modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/20191227_23_51_21/modelParam'
+        modelParamFolder = '/home/hsc/Research/StateMapPrediction/code/models/mirrorAE/resultDir/datasetChanged/20200108_10_36_30/modelParam'
 
         # 数据集路径
         E_dataset_path = '/home/hsc/Research/StateMapPrediction/datas/fake/EastGate/data5'
@@ -402,7 +402,7 @@ if __name__ == '__main__':
             print('write img to ', imgName)
 
         # 保存测试集的隐变量
-        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,args.dataIndex,train = False)
+        fakeSingleTestset = FakeDeltaTDataset(E_dataset_path,SE_dataset_path,0,4,train = False)
         fakeSingleTestLoader = DataLoader(fakeSingleTestset,batch_size=3*24,shuffle=False) # 这里的batch_size直接取了测试集的数据集大小，后面数据集如果变的话这里也可能要变。如果显存爆的话，这里也可能要变
         for i,sample in enumerate(fakeSingleTestLoader):
             E,SE = sample['EStateMap'].to(device), sample['SEStateMap'].to(device)

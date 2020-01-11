@@ -217,6 +217,14 @@ def convertDataToBGR(datas):
         toUpFigure = toUpFigure.astype(np.uint8)
         toDownFigure = toDownFigure.astype(np.uint8)
 
+        x0 = 50
+        y0 = 50
+        arrowLenth = 50
+        cv2.arrowedLine(toRightFigure,(x0 - int(arrowLenth / 2), y0),(x0 + int(arrowLenth / 2), y0),(255, 0, 0), 2)
+        cv2.arrowedLine(toLeftFigure,(x0 + int(arrowLenth / 2), y0),(x0 - int(arrowLenth / 2), y0),(0, 0, 255), 2)
+        cv2.arrowedLine(toDownFigure,(x0, y0 - int(arrowLenth / 2)),(x0, y0 + int(arrowLenth / 2)),(255, 0, 158), 2)
+        cv2.arrowedLine(toUpFigure,(x0, y0 + int(arrowLenth / 2)),(x0, y0 - int(arrowLenth / 2)),(0, 92, 255), 2)
+
         bgr = np.zeros([size,size*5,3])
         bgr[:,size*0:size*1,:] = toUpFigure
         bgr[:,size*1:size*2,:] = toDownFigure
