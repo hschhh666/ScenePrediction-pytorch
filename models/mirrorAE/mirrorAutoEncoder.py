@@ -290,6 +290,9 @@ if __name__ == '__main__':
                     concatenate = torch.cat([E,SE,EOut,SOut,SinEout,EinSout],0)
                     concatenate = concatenate.detach()
                     concatenate = concatenate.cpu()
+                    npyName = 'Test_Epoch%d.npy'%epoch
+                    npyName = os.path.join(imgFolder,npyName)
+                    np.save(npyName,concatenate.numpy())
                     concatenate = convertDataToBGR(concatenate)
                     concatenate = torchvision.utils.make_grid(concatenate,nrow=4,normalize=False,pad_value=0)
 

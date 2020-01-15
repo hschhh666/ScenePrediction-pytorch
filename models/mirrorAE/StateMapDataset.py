@@ -164,24 +164,15 @@ def convertDataToBGR(datas):
     dim = len(np.shape(datas))
 
     def processSingleImg(data):
-        toLeft = data[0]
-        toRight = data[1]
-        toUp = data[2]
-        toDown = data[3]
+        toLeft = np.copy(data[0])
+        toRight = np.copy(data[1])
+        toUp = np.copy(data[2])
+        toDown = np.copy(data[3])
         peopleNum = toLeft + toRight + toUp + toDown
         size = np.shape(toLeft)[0]
 
-        peopleNumFigure = np.zeros([size,size,3])
-        toLeftFigure = np.zeros([size,size,3])
-        toRightFigure = np.zeros([size,size,3])
-        toUpFigure = np.zeros([size,size,3])
-        toDownFigure = np.zeros([size,size,3])
+        singleVisThreshold = 25
 
-        visThreshold = 70
-        singleVisThreshold = visThreshold / 2
-
-        peopleNum[peopleNum > visThreshold] = visThreshold
-        peopleNum = peopleNum * 255/visThreshold
         toLeft[toLeft > singleVisThreshold] = singleVisThreshold
         toLeft = toLeft * 255 / singleVisThreshold
         toRight[toRight > singleVisThreshold] = singleVisThreshold
@@ -191,46 +182,24 @@ def convertDataToBGR(datas):
         toDown[toDown > singleVisThreshold] = singleVisThreshold
         toDown = toDown * 255 /singleVisThreshold
 
-        peopleNumFigure[:,:,0] = 255 - peopleNum
-        peopleNumFigure[:,:,1] = 255 - peopleNum
-        peopleNumFigure[:,:,2] = 255 - peopleNum
-        
-        toLeftFigure[:,:,0] = 255 - toLeft
-        toLeftFigure[:,:,1] = 255 - toLeft
-        toLeftFigure[:,:,2] = 255
+        bgr = np.ones([size,size,3],dtype = np.uint8)
+        maxValue = np.max(data,axis=0)
+        bgr[maxValue==data[0],0] = 255 - (255-0)*toLeft[maxValue==data[0]]/255
+        bgr[maxValue==data[0],1] = 255 - (255-0)*toLeft[maxValue==data[0]]/255
+        bgr[maxValue==data[0],2] = 255 - (255-255)*toLeft[maxValue==data[0]]/255
 
-        toRightFigure[:,:,0] = 255
-        toRightFigure[:,:,1] = 255 - toRight
-        toRightFigure[:,:,2] = 255 - toRight
+        bgr[maxValue==data[1],0] = 255 - (255-255)*toRight[maxValue==data[1]]/255
+        bgr[maxValue==data[1],1] = 255 - (255-0)*toRight[maxValue==data[1]]/255
+        bgr[maxValue==data[1],2] = 255 - (255-0)*toRight[maxValue==data[1]]/255
 
-        toUpFigure[:,:,0] = 255 - toUp
-        toUpFigure[:,:,1] = ((255 - 92) * (255 - toUp) / 255)  + 92
-        toUpFigure[:,:,2] = 255
+        bgr[maxValue==data[2],0] = 255 - (255-102)*toUp[maxValue==data[2]]/255
+        bgr[maxValue==data[2],1] = 255 - (255-207)*toUp[maxValue==data[2]]/255    
+        bgr[maxValue==data[2],2] = 255 - (255-49)*toUp[maxValue==data[2]]/255
 
-        toDownFigure[:,:,0] = 255
-        toDownFigure[:,:,1] = 255 - toDown
-        toDownFigure[:,:,2] = ((255 - 158) * (255 - toDown) / 255)  + 158
+        bgr[maxValue==data[3],0] = 255 - (255-255)*toDown[maxValue==data[3]]/255
+        bgr[maxValue==data[3],1] = 255 - (255-0)*toDown[maxValue==data[3]]/255
+        bgr[maxValue==data[3],2] = 255 - (255-158)*toDown[maxValue==data[3]]/255    
 
-        peopleNumFigure = peopleNumFigure.astype(np.uint8)
-        toLeftFigure = toLeftFigure.astype(np.uint8)
-        toRightFigure = toRightFigure.astype(np.uint8)
-        toUpFigure = toUpFigure.astype(np.uint8)
-        toDownFigure = toDownFigure.astype(np.uint8)
-
-        x0 = 50
-        y0 = 50
-        arrowLenth = 50
-        cv2.arrowedLine(toRightFigure,(x0 - int(arrowLenth / 2), y0),(x0 + int(arrowLenth / 2), y0),(255, 0, 0), 2)
-        cv2.arrowedLine(toLeftFigure,(x0 + int(arrowLenth / 2), y0),(x0 - int(arrowLenth / 2), y0),(0, 0, 255), 2)
-        cv2.arrowedLine(toDownFigure,(x0, y0 - int(arrowLenth / 2)),(x0, y0 + int(arrowLenth / 2)),(255, 0, 158), 2)
-        cv2.arrowedLine(toUpFigure,(x0, y0 + int(arrowLenth / 2)),(x0, y0 - int(arrowLenth / 2)),(0, 92, 255), 2)
-
-        bgr = np.zeros([size,size*5,3])
-        bgr[:,size*0:size*1,:] = toUpFigure
-        bgr[:,size*1:size*2,:] = toDownFigure
-        bgr[:,size*2:size*3,:] = peopleNumFigure
-        bgr[:,size*3:size*4,:] = toLeftFigure
-        bgr[:,size*4:size*5,:] = toRightFigure
         return bgr
 
     if dim == 3: 
